@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f4f2ed;
+  --surface: #e9e5db;
+  --card: #ffffff;
+  --border: rgba(40, 36, 30, 0.14);
+  --accent: #e63946;
+  --accent-hover: #d62839;
+}
+
+.dark {
+  --background: #121211;
+  --surface: #1a1a18;
+  --card: #222220;
+  --border: rgba(230, 225, 215, 0.12);
+  --accent: #ff4d5a;
+  --accent-hover: #ff3342;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+  .backface-visible {
+    backface-visibility: visible;
+    -webkit-backface-visibility: visible;
+  }
+}
