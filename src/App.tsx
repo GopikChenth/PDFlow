@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageView } from './types';
 import FirstPage from './pages/FirstPage';
 import WorkspacePage from './pages/WorkspacePage';
+import TitleBar from './components/TitleBar';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<PageView>('firstPage');
+  const [activeTab, setActiveTab] = useState<string>('recent');
+  const [activeDocName, setActiveDocName] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -35,6 +38,27 @@ export default function App() {
     setCurrentView('firstPage');
   }, []);
 
+  const handleSelectTab = useCallback((tab: string) => {
+    setActiveTab(tab);
+    setCurrentView('workspace');
+  }, []);
+
+  const handleOpenDocument = useCallback(() => {
+    setCurrentView('workspace');
+    // Dispatch keyboard event for ⌘O
+    setTimeout(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'o', ctrlKey: true, metaKey: true }));
+    }, 50);
+  }, []);
+
+  const handleToggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      document.exitFullscreen().catch(() => {});
+    }
+  }, []);
+
   // Global keyboard shortcuts (⌘+Enter / Ctrl+Enter to toggle view)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,17 +70,41 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  return currentView === 'firstPage' ? (
-    <FirstPage
-      onEnterWorkspace={handleEnterWorkspace}
-      darkMode={darkMode}
-      onToggleDarkMode={handleToggleDarkMode}
-    />
-  ) : (
-    <WorkspacePage
-      onReturnToCover={handleReturnToCover}
-      darkMode={darkMode}
-      onToggleDarkMode={handleToggleDarkMode}
-    />
+  return (
+    <div className="flex flex-col h-screen w-screen overflow-hidden bg-background text-zinc-800 dark:text-zinc-200">
+      
+      {/* Global Desktop Custom TitleBar & Menu Bar */}
+      <TitleBar
+        title="PDF Studio"
+        activeDocName={activeDocName}
+        darkMode={darkMode}
+        onToggleDarkMode={handleToggleDarkMode}
+        onOpenDocument={handleOpenDocument}
+        onSelectTab={handleSelectTab}
+        onReturnToCover={handleReturnToCover}
+        onToggleFullscreen={handleToggleFullscreen}
+      />
+
+      {/* Main App Viewport */}
+      <div className="flex-1 overflow-hidden relative">
+        {currentView === 'firstPage' ? (
+          <FirstPage
+            onEnterWorkspace={handleEnterWorkspace}
+            darkMode={darkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+          />
+        ) : (
+          <WorkspacePage
+            onReturnToCover={handleReturnToCover}
+            darkMode={darkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+            controlledActiveTab={activeTab}
+            onActiveTabChange={setActiveTab}
+            onActiveDocChange={setActiveDocName}
+          />
+        )}
+      </div>
+
+    </div>
   );
 }

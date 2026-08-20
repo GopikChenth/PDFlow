@@ -27,11 +27,32 @@ interface WorkspacePageProps {
   onReturnToCover: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
+  controlledActiveTab?: string;
+  onActiveTabChange?: (tab: string) => void;
+  onActiveDocChange?: (docName: string | null) => void;
 }
 
-export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkMode }: WorkspacePageProps) {
-  const [activeTab, setActiveTab] = useState<string>('recent');
-  const [activeDoc, setActiveDoc] = useState<LoadedPDF | null>(null);
+export default function WorkspacePage({ 
+  onReturnToCover, 
+  darkMode, 
+  onToggleDarkMode,
+  controlledActiveTab,
+  onActiveTabChange,
+  onActiveDocChange,
+}: WorkspacePageProps) {
+  const [internalActiveTab, setInternalActiveTab] = useState<string>('recent');
+  const activeTab = controlledActiveTab ?? internalActiveTab;
+  const setActiveTab = useCallback((tab: string) => {
+    setInternalActiveTab(tab);
+    if (onActiveTabChange) onActiveTabChange(tab);
+  }, [onActiveTabChange]);
+
+  const [activeDoc, setActiveDocState] = useState<LoadedPDF | null>(null);
+  const setActiveDoc = useCallback((doc: LoadedPDF | null) => {
+    setActiveDocState(doc);
+    if (onActiveDocChange) onActiveDocChange(doc ? doc.name : null);
+  }, [onActiveDocChange]);
+
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
