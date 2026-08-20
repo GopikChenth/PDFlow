@@ -10,7 +10,8 @@ import {
   Trash2, 
   Clock, 
   ArrowRight,
-  UploadCloud
+  UploadCloud,
+  CheckCircle2
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF } from '../types';
@@ -124,7 +125,18 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
   // Remove document from recent list
   const handleRemoveRecentDoc = useCallback((id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setRecentDocs((prev) => prev.filter((d) => d.id !== id));
+    setRecentDocs((prev) => {
+      const target = prev.find((d) => d.id === id);
+      if (target) {
+        try {
+          URL.revokeObjectURL(target.blobUrl);
+        } catch {
+          /* ignore */
+        }
+      }
+      return prev.filter((d) => d.id !== id);
+    });
+
     if (activeDoc?.id === id) {
       setActiveDoc(null);
     }
@@ -311,7 +323,7 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
           {/* TAB 1: PDF Viewer */}
           {activeTab === 'viewer' ? (
             activeDoc ? (
-              <PDFViewer doc={activeDoc} onClose={handleCloseViewer} />
+              <PDFViewer key={activeDoc.id} doc={activeDoc} onClose={handleCloseViewer} />
             ) : (
               <div className="flex-1 p-8 flex items-center justify-center">
                 <div 
@@ -372,50 +384,69 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
                   </div>
 
                   <div className="flex flex-col gap-2.5">
-                    {recentDocs.map((doc) => (
-                      <div
-                        key={doc.id}
-                        onClick={() => handleOpenRecentDoc(doc)}
-                        className="flex items-center justify-between p-4 rounded-xl bg-card border border-border hover:border-accent/40 dark:hover:border-accent/40 transition-all shadow-sm cursor-pointer group"
-                      >
-                        <div className="flex items-center gap-3.5 min-w-0">
-                          <div className="h-10 w-10 rounded-lg bg-surface flex items-center justify-center text-zinc-700 dark:text-zinc-300 font-bold text-xs flex-shrink-0 group-hover:bg-accent/10 group-hover:text-accent transition-colors">
-                            <FileText className="h-5 w-5" />
-                          </div>
-                          <div className="min-w-0">
-                            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-accent transition-colors truncate">
-                              {doc.name}
-                            </h4>
-                            <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400 mt-0.5">
-                              <span>{doc.size}</span>
-                              <span>•</span>
-                              <span className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {doc.loadedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
+                    {recentDocs.map((doc) => {
+                      const isCurrentlyActive = activeDoc?.id === doc.id;
+
+                      return (
+                        <div
+                          key={doc.id}
+                          onClick={() => handleOpenRecentDoc(doc)}
+                          className={`flex items-center justify-between p-4 rounded-xl bg-card border transition-all shadow-sm cursor-pointer group ${
+                            isCurrentlyActive 
+                              ? 'border-accent/60 bg-accent/[0.03]' 
+                              : 'border-border hover:border-accent/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3.5 min-w-0">
+                            <div className={`h-10 w-10 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 transition-colors ${
+                              isCurrentlyActive 
+                                ? 'bg-accent text-white' 
+                                : 'bg-surface text-zinc-700 dark:text-zinc-300 group-hover:bg-accent/10 group-hover:text-accent'
+                            }`}>
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-accent transition-colors truncate">
+                                  {doc.name}
+                                </h4>
+                                {isCurrentlyActive && (
+                                  <span className="flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                                    <CheckCircle2 className="h-3 w-3" /> Active
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-400 mt-0.5">
+                                <span>{doc.size}</span>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {doc.loadedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <button
-                            onClick={(e) => handleRemoveRecentDoc(doc.id, e)}
-                            title="Remove from session"
-                            className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={(e) => handleRemoveRecentDoc(doc.id, e)}
+                              title="Remove from session"
+                              className="h-8 w-8 rounded-lg hover:bg-rose-500/10 hover:text-rose-500 flex items-center justify-center text-zinc-400 transition-colors"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
 
-                          <button 
-                            onClick={() => handleOpenRecentDoc(doc)}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-colors"
-                          >
-                            <span>Open</span>
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
+                            <button 
+                              onClick={() => handleOpenRecentDoc(doc)}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-colors"
+                            >
+                              <span>{isCurrentlyActive ? 'View' : 'Open'}</span>
+                              <ArrowRight className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

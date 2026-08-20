@@ -46,15 +46,29 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
   const renderedPagesRef = useRef<Set<string>>(new Set());
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
 
-  // 1. Load PDF Document & Pre-calculate Page Geometry
+  // 1. Clean PDF Document Loading & Lifecycle Management
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
+    setPages([]);
+    setCurrentPage(1);
+    setScale(1.0);
+    setRotation(0);
     renderedPagesRef.current.clear();
+
+    // Cancel all running render tasks immediately
+    activeRenderTasksRef.current.forEach((task) => {
+      try { task.cancel(); } catch { /* ignore */ }
+    });
+    activeRenderTasksRef.current.clear();
+    canvasMapRef.current.clear();
 
     const loadingTask = pdfjsLib.getDocument(doc.blobUrl);
     loadingTask.promise.then(async (loadedPdf) => {
-      if (isCancelled) return;
+      if (isCancelled) {
+        try { loadedPdf.destroy(); } catch { /* ignore */ }
+        return;
+      }
       setPdfDoc(loadedPdf);
 
       const pageList: PageInfo[] = [];
@@ -74,20 +88,35 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
 
       if (!isCancelled) {
         setPages(pageList);
-        setCurrentPage(1);
         setLoading(false);
       }
     }).catch((err) => {
-      console.error('Error loading PDF:', err);
-      if (!isCancelled) setLoading(false);
+      if (!isCancelled) {
+        console.error('Error loading PDF:', err);
+        setLoading(false);
+      }
     });
 
     return () => {
       isCancelled = true;
+      try { loadingTask.destroy(); } catch { /* ignore */ }
+      activeRenderTasksRef.current.forEach((task) => {
+        try { task.cancel(); } catch { /* ignore */ }
+      });
+      activeRenderTasksRef.current.clear();
     };
   }, [doc.blobUrl]);
 
-  // 2. Render Page at Crisp High-DPI Vector Buffer (Retina Buffer for sharp scaling)
+  // Clean up PDF Document Proxy on unmount or doc switch
+  useEffect(() => {
+    return () => {
+      if (pdfDoc) {
+        try { pdfDoc.destroy(); } catch { /* ignore */ }
+      }
+    };
+  }, [pdfDoc]);
+
+  // 2. High-DPI Vector Page Rendering
   const renderCanvasPage = useCallback(async (pageNum: number, rot: number) => {
     if (!pdfDoc) return;
     const canvas = canvasMapRef.current.get(pageNum);
@@ -96,12 +125,12 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
     const renderKey = `${pageNum}-${rot}`;
     if (renderedPagesRef.current.has(renderKey)) return;
 
-    // Cancel existing render if any
+    // Cancel existing render on this canvas if any
     if (activeRenderTasksRef.current.has(pageNum)) {
       try {
         activeRenderTasksRef.current.get(pageNum)?.cancel();
       } catch {
-        // ignore
+        /* ignore */
       }
       activeRenderTasksRef.current.delete(pageNum);
     }
@@ -141,6 +170,9 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
   // 3. Lazy Viewport Rendering via IntersectionObserver
   useEffect(() => {
     if (!pdfDoc || pages.length === 0) return;
+
+    // Immediately render Page 1 so user sees content with zero delay
+    renderCanvasPage(1, rotation);
 
     const observer = new IntersectionObserver(
       (entries) => {
@@ -182,8 +214,6 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
     const handleWheel = (e: WheelEvent) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        
-        // Logarithmic zoom factor for natural feel
         const factor = e.deltaY < 0 ? 1.08 : 0.92;
         setScale((prev) => {
           const next = Math.min(Math.max(prev * factor, 0.4), 2.5);
@@ -207,10 +237,9 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
     }
   }, []);
 
-  // 6. Keyboard Navigation: Arrow Keys (Left/Right, Up/Down), PageUp/Down, Home/End
+  // 6. Keyboard Navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't intercept if user is typing in a text field
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'TEXTAREA' || (target.tagName === 'INPUT' && (target as HTMLInputElement).type === 'text'))) {
         return;
@@ -296,7 +325,7 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
     document.body.removeChild(a);
   }, [doc.blobUrl, doc.name]);
 
-  // Scroll tracking to update current page number
+  // Scroll tracking to update current page indicator
   const handleScroll = useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
