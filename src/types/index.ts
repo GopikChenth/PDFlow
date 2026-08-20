@@ -33,6 +33,13 @@ export interface LoadedPDF {
   loadedAt: Date;
 }
 
+export interface OrganizerPageItem {
+  id: string;
+  originalPageNumber: number; // 1-indexed
+  rotation: number; // 0, 90, 180, 270
+  selected?: boolean;
+}
+
 export interface NavItem {
   id: string;
   label: string;

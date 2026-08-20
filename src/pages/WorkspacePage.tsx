@@ -16,6 +16,7 @@ import {
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF } from '../types';
 import PDFViewer from '../components/PDFViewer';
+import PageOrganizer from '../components/PageOrganizer';
 
 interface WorkspacePageProps {
   onReturnToCover: () => void;
@@ -282,7 +283,7 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
               <UploadCloud className="h-8 w-8" />
             </div>
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              Drop PDF file to open in Viewer
+              Drop PDF file to open
             </p>
             <p className="text-xs text-zinc-500 font-mono mt-1">
               In-Memory Local Processing
@@ -290,8 +291,8 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
           </div>
         )}
 
-        {/* Top App Header Bar (Shown when not in active viewer mode) */}
-        {!(activeTab === 'viewer' && activeDoc) && (
+        {/* Top App Header Bar (Shown when not in full integrated viewer or organizer mode) */}
+        {!((activeTab === 'viewer' || activeTab === 'organizer') && activeDoc) && (
           <header className="h-12 border-b border-border flex items-center justify-between px-6 bg-surface/40 backdrop-blur-md flex-shrink-0 z-20">
             <div className="flex items-center gap-3 text-xs font-mono text-zinc-500 min-w-0">
               <button 
@@ -347,8 +348,43 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
                 </div>
               </div>
             )
+          ) : activeTab === 'organizer' ? (
+            /* TAB 2: Page Organizer */
+            activeDoc ? (
+              <PageOrganizer
+                key={activeDoc.id}
+                doc={activeDoc}
+                onSaveModifiedDoc={(updatedDoc) => {
+                  setActiveDoc(updatedDoc);
+                  setRecentDocs((prev) => [updatedDoc, ...prev.filter((d) => d.id !== updatedDoc.id)]);
+                }}
+                onOpenInViewer={() => setActiveTab('viewer')}
+              />
+            ) : (
+              <div className="flex-1 p-8 flex items-center justify-center">
+                <div 
+                  onClick={handleTriggerOpenFile}
+                  className="flex flex-col items-center justify-center text-center max-w-lg w-full p-12 rounded-2xl border-2 border-dashed border-border bg-card/40 hover:bg-card hover:border-accent transition-all cursor-pointer group shadow-sm"
+                >
+                  <div className="h-16 w-16 rounded-2xl bg-surface flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                    <FolderOpen className="h-8 w-8 text-zinc-500 group-hover:text-accent transition-colors" />
+                  </div>
+                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
+                    Select a PDF to organize
+                  </h3>
+                  <p className="text-xs text-zinc-500 mt-1.5 max-w-sm">
+                    Reorder pages with drag & drop, rotate individual pages, delete unwanted sheets, or extract sections.
+                  </p>
+                  <div className="mt-6 flex items-center gap-2">
+                    <button className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold group-hover:bg-accent group-hover:text-white transition-colors">
+                      Browse Local Files
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )
           ) : activeTab === 'recent' ? (
-            /* TAB 2: Recent Documents View */
+            /* TAB 3: Recent Documents View */
             <div className="flex-1 overflow-auto p-8 flex flex-col">
               {recentDocs.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center">
