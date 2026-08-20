@@ -17,6 +17,11 @@ import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF } from '../types';
 import PDFViewer from '../components/PDFViewer';
 import PageOrganizer from '../components/PageOrganizer';
+import MergeTool from '../components/tools/MergeTool';
+import SplitTool from '../components/tools/SplitTool';
+import CompressTool from '../components/tools/CompressTool';
+import WatermarkTool from '../components/tools/WatermarkTool';
+import ProtectTool from '../components/tools/ProtectTool';
 
 interface WorkspacePageProps {
   onReturnToCover: () => void;
@@ -147,6 +152,13 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
   const handleCloseViewer = useCallback(() => {
     setActiveDoc(null);
     setActiveTab('recent');
+  }, []);
+
+  // Callback to register and view newly generated/modified tool documents
+  const handleRegisterAndOpenDoc = useCallback((generatedDoc: LoadedPDF) => {
+    setActiveDoc(generatedDoc);
+    setRecentDocs((prev) => [generatedDoc, ...prev.filter((d) => d.id !== generatedDoc.id)]);
+    setActiveTab('viewer');
   }, []);
 
   return (
@@ -487,25 +499,22 @@ export default function WorkspacePage({ onReturnToCover, darkMode, onToggleDarkM
                 </div>
               )}
             </div>
-          ) : (
-            /* Other tools fallback placeholder */
-            <div className="flex-1 p-8 flex items-center justify-center">
-              <div className="text-center max-w-sm p-8 rounded-2xl border border-dashed border-border bg-card/30">
-                <h3 className="text-sm font-semibold capitalize text-zinc-900 dark:text-zinc-100">
-                  {activeTab.replace('-', ' ')} Tool
-                </h3>
-                <p className="text-xs text-zinc-500 mt-1">
-                  Select or open a PDF document to use this tool.
-                </p>
-                <button
-                  onClick={handleTriggerOpenFile}
-                  className="mt-4 px-4 py-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent transition-colors"
-                >
-                  Open PDF
-                </button>
-              </div>
-            </div>
-          )}
+          ) : activeTab === 'merge' ? (
+            /* TAB 4: Merge Tool */
+            <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
+          ) : activeTab === 'split' ? (
+            /* TAB 5: Split & Extract Tool */
+            <SplitTool initialDoc={activeDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
+          ) : activeTab === 'compress' ? (
+            /* TAB 6: Compress Tool */
+            <CompressTool initialDoc={activeDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
+          ) : activeTab === 'watermark' ? (
+            /* TAB 7: Watermark Tool */
+            <WatermarkTool initialDoc={activeDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
+          ) : activeTab === 'protect' ? (
+            /* TAB 8: Protect & Unlock Tool */
+            <ProtectTool initialDoc={activeDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
+          ) : null}
 
         </div>
 
