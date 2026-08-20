@@ -11,12 +11,14 @@ import {
   Clock, 
   ArrowRight,
   UploadCloud,
-  CheckCircle2
+  CheckCircle2,
+  Layers
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF } from '../types';
 import PDFViewer from '../components/PDFViewer';
 import PageOrganizer from '../components/PageOrganizer';
+import EmptyState from '../components/EmptyState';
 import MergeTool from '../components/tools/MergeTool';
 import SplitTool from '../components/tools/SplitTool';
 import CompressTool from '../components/tools/CompressTool';
@@ -359,27 +361,13 @@ export default function WorkspacePage({
             activeDoc ? (
               <PDFViewer key={activeDoc.id} doc={activeDoc} onClose={handleCloseViewer} />
             ) : (
-              <div className="flex-1 p-8 flex items-center justify-center">
-                <div 
-                  onClick={handleTriggerOpenFile}
-                  className="flex flex-col items-center justify-center text-center max-w-lg w-full p-12 rounded-2xl border-2 border-dashed border-border bg-card/40 hover:bg-card hover:border-accent transition-all cursor-pointer group shadow-sm"
-                >
-                  <div className="h-16 w-16 rounded-2xl bg-surface flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <FolderOpen className="h-8 w-8 text-zinc-500 group-hover:text-accent transition-colors" />
-                  </div>
-                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-                    Select a PDF to view
-                  </h3>
-                  <p className="text-xs text-zinc-500 mt-1.5 max-w-sm">
-                    Click to open file manager or drag and drop any PDF document anywhere into the workspace.
-                  </p>
-                  <div className="mt-6 flex items-center gap-2">
-                    <button className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold group-hover:bg-accent group-hover:text-white transition-colors">
-                      Browse Local Files
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <EmptyState
+                icon={FolderOpen}
+                title="Select a PDF to view"
+                description="Click to open file manager or drag and drop any PDF document anywhere into the workspace."
+                actionLabel="Browse Local Files"
+                onAction={handleTriggerOpenFile}
+              />
             )
           ) : activeTab === 'organizer' ? (
             /* TAB 2: Page Organizer */
@@ -394,48 +382,25 @@ export default function WorkspacePage({
                 onOpenInViewer={() => setActiveTab('viewer')}
               />
             ) : (
-              <div className="flex-1 p-8 flex items-center justify-center">
-                <div 
-                  onClick={handleTriggerOpenFile}
-                  className="flex flex-col items-center justify-center text-center max-w-lg w-full p-12 rounded-2xl border-2 border-dashed border-border bg-card/40 hover:bg-card hover:border-accent transition-all cursor-pointer group shadow-sm"
-                >
-                  <div className="h-16 w-16 rounded-2xl bg-surface flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <FolderOpen className="h-8 w-8 text-zinc-500 group-hover:text-accent transition-colors" />
-                  </div>
-                  <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-                    Select a PDF to organize
-                  </h3>
-                  <p className="text-xs text-zinc-500 mt-1.5 max-w-sm">
-                    Reorder pages with drag & drop, rotate individual pages, delete unwanted sheets, or extract sections.
-                  </p>
-                  <div className="mt-6 flex items-center gap-2">
-                    <button className="px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold group-hover:bg-accent group-hover:text-white transition-colors">
-                      Browse Local Files
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <EmptyState
+                icon={Layers}
+                title="Select a PDF to organize"
+                description="Reorder pages with drag & drop, rotate individual pages, delete unwanted sheets, or extract sections."
+                actionLabel="Browse Local Files"
+                onAction={handleTriggerOpenFile}
+              />
             )
           ) : activeTab === 'recent' ? (
             /* TAB 3: Recent Documents View */
             <div className="flex-1 overflow-auto p-8 flex flex-col">
               {recentDocs.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center">
-                  <div 
-                    onClick={handleTriggerOpenFile}
-                    className="flex flex-col items-center justify-center text-center max-w-md p-10 rounded-2xl border border-dashed border-border bg-card/30 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer group"
-                  >
-                    <div className="h-12 w-12 rounded-xl bg-surface flex items-center justify-center mb-3 group-hover:scale-105 transition-transform">
-                      <FolderOpen className="h-6 w-6 text-zinc-400" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-                      No documents open
-                    </h3>
-                    <p className="text-xs text-zinc-500 mt-1">
-                      Click 'Open Document' or drop a PDF file here to begin viewing.
-                    </p>
-                  </div>
-                </div>
+                <EmptyState
+                  icon={FolderOpen}
+                  title="No documents open"
+                  description="Click 'Open Document' or drag and drop a PDF file anywhere into the window to begin viewing."
+                  actionLabel="Browse Local Files"
+                  onAction={handleTriggerOpenFile}
+                />
               ) : (
                 <div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
                   <div className="flex items-center justify-between">

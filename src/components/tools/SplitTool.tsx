@@ -11,6 +11,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { LoadedPDF } from '../../types';
+import EmptyState from '../EmptyState';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
@@ -242,23 +243,13 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
       {/* Main Canvas Area */}
       <div className="flex-1 overflow-auto p-6 sm:p-8 flex flex-col items-center">
         {!doc ? (
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="max-w-xl w-full p-12 rounded-2xl border-2 border-dashed border-border bg-card/40 hover:bg-card hover:border-accent flex flex-col items-center justify-center text-center cursor-pointer group transition-all shadow-sm my-auto"
-          >
-            <div className="h-16 w-16 rounded-2xl bg-surface flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Scissors className="h-8 w-8 text-zinc-500 group-hover:text-accent transition-colors" />
-            </div>
-            <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-              Select a PDF to Split or Extract
-            </h3>
-            <p className="text-xs text-zinc-500 mt-1.5 max-w-sm">
-              Choose specific page ranges or extract individual pages into a separate document.
-            </p>
-            <button className="mt-6 px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold group-hover:bg-accent group-hover:text-white transition-colors">
-              Browse PDF
-            </button>
-          </div>
+          <EmptyState
+            icon={Scissors}
+            title="Select a PDF to Split or Extract"
+            description="Choose specific page ranges or extract individual pages into a separate document."
+            actionLabel="Browse PDF"
+            onAction={() => fileInputRef.current?.click()}
+          />
         ) : (
           <div className="max-w-3xl w-full flex flex-col gap-6">
             
