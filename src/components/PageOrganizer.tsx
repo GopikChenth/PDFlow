@@ -38,8 +38,11 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const gridScrollRef = useRef<HTMLDivElement>(null);
   const canvasMapRef = useRef<Map<string, HTMLCanvasElement>>(new Map());
   const renderedThumbnailsRef = useRef<Set<string>>(new Set());
+  const activeRenderTasksRef = useRef<Map<string, any>>(new Map());
 
   // 1. Load Document and initialize Page List
   useEffect(() => {
@@ -48,15 +51,24 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     renderedThumbnailsRef.current.clear();
     canvasMapRef.current.clear();
 
+    // Cancel all running render tasks immediately
+    activeRenderTasksRef.current.forEach((task) => {
+      try { task.cancel(); } catch { /* ignore */ }
+    });
+    activeRenderTasksRef.current.clear();
+
     const loadingTask = pdfjsLib.getDocument(doc.blobUrl);
     loadingTask.promise.then((loadedPdf) => {
-      if (isCancelled) return;
+      if (isCancelled) {
+        try { loadedPdf.destroy(); } catch { /* ignore */ }
+        return;
+      }
       setPdfDoc(loadedPdf);
 
       const initialPages: OrganizerPageItem[] = [];
       for (let i = 1; i <= loadedPdf.numPages; i++) {
         initialPages.push({
-          id: `page-${i}-${Date.now()}-${Math.random()}`,
+          id: `page-${i}`,
           originalPageNumber: i,
           rotation: 0,
           selected: false,
@@ -76,6 +88,10 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     return () => {
       isCancelled = true;
       try { loadingTask.destroy(); } catch { /* ignore */ }
+      activeRenderTasksRef.current.forEach((task) => {
+        try { task.cancel(); } catch { /* ignore */ }
+      });
+      activeRenderTasksRef.current.clear();
     };
   }, [doc.blobUrl]);
 
@@ -85,19 +101,35 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
       if (pdfDoc) {
         try { pdfDoc.destroy(); } catch { /* ignore */ }
       }
+      activeRenderTasksRef.current.forEach((task) => {
+        try { task.cancel(); } catch { /* ignore */ }
+      });
+      activeRenderTasksRef.current.clear();
     };
   }, [pdfDoc]);
 
-  // 2. Render Page Thumbnail Canvas
-  const renderThumbnail = useCallback(async (item: OrganizerPageItem, canvas: HTMLCanvasElement) => {
+  // 2. High-Speed Lazy Thumbnail Rendering
+  const renderThumbnail = useCallback(async (item: OrganizerPageItem) => {
     if (!pdfDoc) return;
+    const canvas = canvasMapRef.current.get(item.id);
+    if (!canvas) return;
+
     const renderKey = `${item.id}-${item.originalPageNumber}-${item.rotation}`;
     if (renderedThumbnailsRef.current.has(renderKey)) return;
 
+    // Cancel existing render on this canvas if any
+    if (activeRenderTasksRef.current.has(item.id)) {
+      try {
+        activeRenderTasksRef.current.get(item.id)?.cancel();
+      } catch {
+        /* ignore */
+      }
+      activeRenderTasksRef.current.delete(item.id);
+    }
+
     try {
       const page = await pdfDoc.getPage(item.originalPageNumber);
-      const pixelRatio = window.devicePixelRatio || 1;
-      const targetWidth = 180 * pixelRatio;
+      const targetWidth = 160; // Fast lightweight thumbnail
       const baseViewport = page.getViewport({ scale: 1.0, rotation: item.rotation });
       const scale = targetWidth / baseViewport.width;
       const viewport = page.getViewport({ scale, rotation: item.rotation });
@@ -105,7 +137,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
       canvas.width = viewport.width;
       canvas.height = viewport.height;
 
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext('2d', { alpha: false });
       if (!ctx) return;
 
       const renderContext = {
@@ -114,26 +146,60 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
         canvas,
       };
 
-      await page.render(renderContext).promise;
+      const task = page.render(renderContext);
+      activeRenderTasksRef.current.set(item.id, task);
+      await task.promise;
+      
+      activeRenderTasksRef.current.delete(item.id);
       renderedThumbnailsRef.current.add(renderKey);
-    } catch (err) {
-      console.error(`Error rendering thumbnail for page ${item.originalPageNumber}:`, err);
+    } catch (err: any) {
+      if (err?.name !== 'RenderingCancelledException') {
+        console.error(`Thumbnail render error page ${item.originalPageNumber}:`, err);
+      }
+      activeRenderTasksRef.current.delete(item.id);
     }
   }, [pdfDoc]);
 
-  // Re-render thumbnails on changes
+  // 3. Lazy IntersectionObserver for Viewport Thumbnails
   useEffect(() => {
     if (!pdfDoc || pages.length === 0) return;
 
-    pages.forEach((page) => {
-      const canvas = canvasMapRef.current.get(page.id);
-      if (canvas) {
-        renderThumbnail(page, canvas);
-      }
+    // Pre-render the first 6 pages immediately so user sees them with 0ms delay
+    const initialBatch = pages.slice(0, 6);
+    initialBatch.forEach((p) => {
+      renderThumbnail(p);
     });
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const pageId = entry.target.getAttribute('data-organizer-id');
+            if (pageId) {
+              const targetPage = pages.find((p) => p.id === pageId);
+              if (targetPage) {
+                renderThumbnail(targetPage);
+              }
+            }
+          }
+        });
+      },
+      {
+        root: gridScrollRef.current,
+        rootMargin: '300px 0px 300px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    const pageElements = gridScrollRef.current?.querySelectorAll('[data-organizer-id]');
+    pageElements?.forEach((el) => observer.observe(el));
+
+    return () => {
+      observer.disconnect();
+    };
   }, [pdfDoc, pages, renderThumbnail]);
 
-  // 3. Selection Handlers
+  // 4. Selection Handlers
   const togglePageSelection = useCallback((id: string) => {
     setPages((prev) =>
       prev.map((p) => (p.id === id ? { ...p, selected: !p.selected } : p))
@@ -151,7 +217,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
   const selectedPages = pages.filter((p) => p.selected);
   const selectedCount = selectedPages.length;
 
-  // 4. Per-Page & Batch Operations
+  // 5. Per-Page & Batch Operations
   const handleRotatePage = useCallback((id: string) => {
     renderedThumbnailsRef.current.clear();
     setPages((prev) =>
@@ -217,7 +283,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     setPages(originalPages);
   }, [originalPages]);
 
-  // 5. Drag and Drop Reordering
+  // 6. Drag and Drop Reordering
   const handleDragStart = useCallback((index: number) => {
     setDraggedIndex(index);
   }, []);
@@ -245,7 +311,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     setDragOverIndex(null);
   }, [draggedIndex]);
 
-  // 6. In-Memory PDF Compilation via pdf-lib
+  // 7. In-Memory PDF Compilation via pdf-lib
   const handleSaveAndExport = useCallback(async () => {
     if (pages.length === 0) return;
     setSaving(true);
@@ -281,7 +347,6 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
       };
 
       onSaveModifiedDoc(updatedDoc);
-      alert('Document successfully updated and saved in session!');
       onOpenInViewer();
     } catch (err) {
       console.error('Error saving organized PDF:', err);
@@ -291,7 +356,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     }
   }, [pages, doc, onSaveModifiedDoc, onOpenInViewer]);
 
-  // 7. Extract Selected Pages into Standalone PDF
+  // 8. Extract Selected Pages into Standalone PDF
   const handleExtractSelected = useCallback(async () => {
     const targets = selectedCount > 0 ? selectedPages : pages;
     if (targets.length === 0) return;
@@ -329,7 +394,10 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
   }, [selectedCount, selectedPages, pages, doc]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-background text-zinc-800 dark:text-zinc-200 overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="w-full h-full flex flex-col bg-background text-zinc-800 dark:text-zinc-200 overflow-hidden"
+    >
       
       {/* 1. Control & Action Toolbar */}
       <div className="h-14 border-b border-border bg-surface/80 dark:bg-surface/50 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0 z-10">
@@ -454,7 +522,10 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
       </div>
 
       {/* 2. Responsive Visual Page Grid Area */}
-      <div className="flex-1 overflow-auto p-6 sm:p-8 bg-background">
+      <div 
+        ref={gridScrollRef}
+        className="flex-1 overflow-auto p-6 sm:p-8 bg-background overscroll-contain"
+      >
         {loading ? (
           <div className="h-full flex flex-col items-center justify-center gap-3">
             <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
@@ -469,6 +540,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
               return (
                 <div
                   key={item.id}
+                  data-organizer-id={item.id}
                   draggable
                   onDragStart={() => handleDragStart(index)}
                   onDragOver={(e) => handleDragOver(index, e)}
