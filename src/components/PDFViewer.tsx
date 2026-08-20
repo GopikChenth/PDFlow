@@ -46,7 +46,7 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
   const renderedPagesRef = useRef<Set<string>>(new Set());
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
 
-  // 1. Clean PDF Document Loading & Lifecycle Management
+  // 1. Load PDF Document & Pre-calculate Page Geometry
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
@@ -171,7 +171,7 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
   useEffect(() => {
     if (!pdfDoc || pages.length === 0) return;
 
-    // Immediately render Page 1 so user sees content with zero delay
+    // Render Page 1 immediately
     renderCanvasPage(1, rotation);
 
     const observer = new IntersectionObserver(
@@ -185,8 +185,8 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
       },
       {
         root: scrollContainerRef.current,
-        rootMargin: '400px 0px 400px 0px',
-        threshold: 0.01,
+        rootMargin: '600px 0px 600px 0px',
+        threshold: 0.02,
       }
     );
 
@@ -332,10 +332,14 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
 
     const pageElements = container.querySelectorAll<HTMLDivElement>('[data-page]');
     const containerTop = container.scrollTop;
+    const containerHeight = container.clientHeight;
 
     for (let i = 0; i < pageElements.length; i++) {
       const el = pageElements[i];
-      if (el.offsetTop + el.offsetHeight / 2 > containerTop) {
+      const elTop = el.offsetTop - container.offsetTop;
+      const elBottom = elTop + el.offsetHeight;
+
+      if (elTop <= containerTop + containerHeight / 3 && elBottom >= containerTop) {
         const pageNum = parseInt(el.getAttribute('data-page') || '1', 10);
         setCurrentPage(pageNum);
         break;
@@ -438,11 +442,15 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
 
       </div>
 
-      {/* 2. PDF Viewport Scroll Area */}
+      {/* 2. Responsive Multi-Page Scroll Viewport */}
       <div 
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 w-full h-full overflow-auto bg-background p-6 sm:p-10 flex flex-col items-center"
+        tabIndex={0}
+        className="flex-1 w-full h-full overflow-y-auto overflow-x-auto bg-background py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain"
+        style={{
+          WebkitOverflowScrolling: 'touch',
+        }}
       >
         {loading ? (
           <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
@@ -450,49 +458,37 @@ export default function PDFViewer({ doc, onClose }: PDFViewerProps) {
             <p className="text-xs font-mono text-zinc-400">Loading document...</p>
           </div>
         ) : (
-          /* GPU-Accelerated Zoom Stage (Single hardware composited transformation matrix) */
-          <div
-            style={{
-              transform: `scale(${scale})`,
-              transformOrigin: 'top center',
-              willChange: 'transform',
-            }}
-            className="flex flex-col items-center gap-8 transition-transform duration-75 ease-out"
-          >
-            {pages.map((p) => {
-              const isRotated90or270 = rotation === 90 || rotation === 270;
-              const displayWidth = isRotated90or270 ? p.height : p.width;
-              const displayHeight = isRotated90or270 ? p.width : p.height;
+          pages.map((p) => {
+            const isRotated90or270 = rotation === 90 || rotation === 270;
+            const baseW = isRotated90or270 ? p.height : p.width;
+            const baseH = isRotated90or270 ? p.width : p.height;
+            const displayWidth = Math.round(baseW * scale);
+            const displayHeight = Math.round(baseH * scale);
 
-              return (
-                <div
-                  key={p.pageNum}
-                  data-page={p.pageNum}
-                  style={{
-                    width: `${displayWidth}px`,
-                    height: `${displayHeight}px`,
+            return (
+              <div
+                key={p.pageNum}
+                data-page={p.pageNum}
+                style={{
+                  width: `${displayWidth}px`,
+                  height: `${displayHeight}px`,
+                }}
+                className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.4)] border border-black/5 dark:border-white/10 overflow-hidden flex-shrink-0 transition-[width,height] duration-75 ease-out"
+              >
+                <canvas
+                  ref={(el) => {
+                    if (el) canvasMapRef.current.set(p.pageNum, el);
+                    else canvasMapRef.current.delete(p.pageNum);
                   }}
-                  className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.08)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.4)] border border-black/5 dark:border-white/10 overflow-hidden flex-shrink-0"
-                >
-                  <canvas
-                    ref={(el) => {
-                      if (el) canvasMapRef.current.set(p.pageNum, el);
-                      else canvasMapRef.current.delete(p.pageNum);
-                    }}
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                    }}
-                    className="block"
-                  />
-                </div>
-              );
-            })}
-          </div>
+                  className="block w-full h-full"
+                />
+              </div>
+            );
+          })
         )}
       </div>
 
-      {/* 3. Floating Glassmorphic Zoom Slider (120fps Real-Time Hardware Accelerated) */}
+      {/* 3. Floating Glassmorphic Zoom Slider */}
       <div className="absolute bottom-6 right-6 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-full bg-surface/95 dark:bg-card/95 border border-border shadow-[0_10px_35px_rgba(0,0,0,0.15)] dark:shadow-[0_14px_45px_rgba(0,0,0,0.6)] backdrop-blur-md text-zinc-800 dark:text-zinc-200 select-none transition-all hover:border-zinc-400 dark:hover:border-zinc-600">
         
         {/* Zoom Out Button */}
