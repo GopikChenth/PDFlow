@@ -14,7 +14,7 @@ interface FirstPageProps {
 
 export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode }: FirstPageProps) {
   return (
-    <div className="relative min-h-screen w-screen bg-background text-zinc-800 dark:text-zinc-200 flex flex-col justify-between overflow-x-hidden selection:bg-accent selection:text-white transition-colors duration-300">
+    <div className="relative w-full h-full min-h-full overflow-y-auto bg-background text-zinc-800 dark:text-zinc-200 flex flex-col justify-between overflow-x-hidden selection:bg-accent selection:text-white transition-colors duration-300">
       
       {/* Background Dot & Subtle Grid Pattern */}
       <div 

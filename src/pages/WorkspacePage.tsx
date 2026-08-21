@@ -130,20 +130,17 @@ export default function WorkspacePage({
     }
   }, [processFile]);
 
-  // Keyboard shortcut: ⌘O / Ctrl+O to open file dialog, Esc to close viewer
+  // Keyboard shortcut: ⌘O / Ctrl+O to open file dialog
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'o' || e.key === 'O')) {
         e.preventDefault();
         handleTriggerOpenFile();
       }
-      if (e.key === 'Escape' && activeDoc) {
-        setActiveDoc(null);
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleTriggerOpenFile, activeDoc]);
+  }, [handleTriggerOpenFile]);
 
   // Re-open recent document
   const handleOpenRecentDoc = useCallback((doc: LoadedPDF) => {
@@ -186,7 +183,7 @@ export default function WorkspacePage({
 
   return (
     <div 
-      className="flex h-screen w-screen overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
+      className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -294,14 +291,23 @@ export default function WorkspacePage({
         </div>
 
         {/* Sidebar Footer */}
-        <div className="flex flex-col gap-3 pt-4 border-t border-border">
-          <div className="flex items-center justify-between px-1">
+        <div className="flex flex-col gap-2 pt-3 pb-1 border-t border-border flex-shrink-0">
+          <div className="flex items-center justify-between gap-2 px-1">
             <button
               onClick={onToggleDarkMode}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-sm"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-xs"
             >
               {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
               <span>{darkMode ? 'Light' : 'Dark'}</span>
+            </button>
+
+            <button
+              onClick={onReturnToCover}
+              className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
+              title="Return to Presentation Cover"
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span>Cover</span>
             </button>
           </div>
         </div>
@@ -359,7 +365,13 @@ export default function WorkspacePage({
           {/* TAB 1: PDF Viewer */}
           {activeTab === 'viewer' ? (
             activeDoc ? (
-              <PDFViewer key={activeDoc.id} doc={activeDoc} onClose={handleCloseViewer} />
+              <PDFViewer 
+                key={activeDoc.id} 
+                doc={activeDoc} 
+                allDocs={recentDocs}
+                onClose={handleCloseViewer} 
+                onSelectDoc={(d) => setActiveDoc(d)}
+              />
             ) : (
               <EmptyState
                 icon={FolderOpen}
