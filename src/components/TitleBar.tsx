@@ -2,10 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { 
   Sun, 
   Moon, 
-  Minus, 
-  Square, 
-  X, 
-  FileText, 
+  FileText,
   FolderOpen, 
   Layers, 
   Combine, 
@@ -423,44 +420,27 @@ export default function TitleBar({
         </span>
       </div>
 
-      {/* 3. Right: Theme Toggle & Native Window Control Buttons */}
-      <div className="flex items-center gap-1 h-full flex-shrink-0" data-tauri-drag-region>
+      {/* 3. Right: Quick Actions (Theme & Fullscreen) */}
+      <div className="flex items-center gap-1.5 h-full flex-shrink-0">
         
         {/* Quick Theme Toggle */}
         <button
           onClick={onToggleDarkMode}
-          title={darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-          className="h-6 w-6 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors mr-1"
+          title={darkMode ? 'Switch to Light Mode (⌘T)' : 'Switch to Dark Mode (⌘T)'}
+          className="h-6 w-6 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
         >
-          {darkMode ? <Sun className="h-3 w-3 text-amber-400" /> : <Moon className="h-3 w-3 text-zinc-600" />}
+          {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
         </button>
 
-        {/* Window Control 1: Minimize */}
-        <button
-          onClick={handleMinimize}
-          title="Minimize"
-          className="h-6 w-8 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 transition-colors"
-        >
-          <Minus className="h-3 w-3" />
-        </button>
-
-        {/* Window Control 2: Maximize / Restore */}
-        <button
-          onClick={handleMaximize}
-          title={isMaximized ? 'Restore' : 'Maximize'}
-          className="h-6 w-8 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 transition-colors"
-        >
-          {isMaximized ? <Maximize2 className="h-3 w-3" /> : <Square className="h-3 w-3" />}
-        </button>
-
-        {/* Window Control 3: Close Window */}
-        <button
-          onClick={handleClose}
-          title="Close"
-          className="h-6 w-8 rounded hover:bg-rose-500 hover:text-white flex items-center justify-center text-zinc-600 dark:text-zinc-400 transition-colors"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
+        {onToggleFullscreen && (
+          <button
+            onClick={onToggleFullscreen}
+            title="Toggle Fullscreen (F11)"
+            className="h-6 w-6 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors hidden sm:flex"
+          >
+            <Maximize2 className="h-3 w-3" />
+          </button>
+        )}
 
       </div>
 
