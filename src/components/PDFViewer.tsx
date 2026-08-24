@@ -10,8 +10,6 @@ import {
   Printer, 
   X,
   FileText,
-  Minus,
-  Plus,
   Search,
   BookOpen,
   LayoutGrid,
@@ -49,6 +47,12 @@ interface PDFViewerProps {
   allDocs?: LoadedPDF[];
   onClose?: () => void;
   onSelectDoc?: (doc: LoadedPDF) => void;
+  onBackToTools?: () => void;
+  onOpenDocument?: () => void;
+  onOpenOrganizer?: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
+  onReturnToCover?: () => void;
 }
 
 interface PageInfo {
@@ -66,7 +70,13 @@ export default function PDFViewer({
   doc, 
   allDocs = [], 
   onClose, 
-  onSelectDoc
+  onSelectDoc,
+  onBackToTools,
+  onOpenDocument,
+  onOpenOrganizer,
+  darkMode,
+  onToggleDarkMode,
+  onReturnToCover,
 }: PDFViewerProps) {
   // Core Document State
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -87,12 +97,13 @@ export default function PDFViewer({
   const [isReflowOpen, setIsReflowOpen] = useState<boolean>(false);
 
   // 3. Navigation Panes (Left Drawer)
-  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(false);
+  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(true);
   const [navSidebarTab, setNavSidebarTab] = useState<NavSidebarTab>('thumbnails');
   const [outline, setOutline] = useState<PDFOutlineNode[]>([]);
   const [attachments, setAttachments] = useState<PDFAttachment[]>([]);
   const [bookmarks, setBookmarks] = useState<PDFBookmark[]>([]);
-  const [thumbnailUrls, setThumbnailUrls] = useState<Map<number, string>>(new Map());
+  const isProgrammaticScrollRef = useRef<boolean>(false);
+  const programmaticScrollTimeoutRef = useRef<any>(null);
 
   // 4. Search & Indexing Engine
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
@@ -272,7 +283,6 @@ export default function PDFViewer({
     setCurrentPage(1);
     setScale(1.0);
     setRotation(0);
-    setThumbnailUrls(new Map());
     renderedPagesRef.current.clear();
 
     activeRenderTasksRef.current.forEach((task) => {
@@ -456,14 +466,6 @@ export default function PDFViewer({
         await textLayer.render();
         activeTextTasksRef.current.delete(pageNum);
       }
-
-      // Generate low-res thumbnail image for thumbnail sidebar
-      if (!thumbnailUrls.has(pageNum) && canvas.width > 0) {
-        try {
-          const thumbUrl = canvas.toDataURL('image/jpeg', 0.6);
-          setThumbnailUrls((prev) => new Map(prev).set(pageNum, thumbUrl));
-        } catch {}
-      }
     } catch (err: any) {
       if (err?.name !== 'RenderingCancelledException') {
         console.error(`Page render error on page ${pageNum}:`, err);
@@ -471,7 +473,7 @@ export default function PDFViewer({
       activeRenderTasksRef.current.delete(pageNum);
       activeTextTasksRef.current.delete(pageNum);
     }
-  }, [pdfDoc, thumbnailUrls]);
+  }, [pdfDoc]);
 
   // 3. Lazy Viewport Rendering via IntersectionObserver
   useEffect(() => {
@@ -542,14 +544,90 @@ export default function PDFViewer({
     return () => container.removeEventListener('wheel', handleWheel);
   }, []);
 
-  // 5. Scroll / Page Navigation Helper
+  // 5. Scroll / Page Navigation Helper (Centers the selected page in the viewport)
   const scrollToPage = useCallback((pageNum: number) => {
+    isProgrammaticScrollRef.current = true;
     setCurrentPage(pageNum);
-    const targetEl = scrollContainerRef.current?.querySelector(`[data-page="${pageNum}"]`);
+
+    if (programmaticScrollTimeoutRef.current) {
+      clearTimeout(programmaticScrollTimeoutRef.current);
+    }
+    programmaticScrollTimeoutRef.current = setTimeout(() => {
+      isProgrammaticScrollRef.current = false;
+    }, 600);
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const targetEl = container.querySelector(`[data-page="${pageNum}"]`) as HTMLElement | null;
     if (targetEl) {
-      targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = targetEl.getBoundingClientRect();
+
+      let scrollTop: number;
+      if (targetRect.height < containerRect.height) {
+        // Center vertically if page fits within container height
+        scrollTop = container.scrollTop + (targetRect.top - containerRect.top) - (containerRect.height - targetRect.height) / 2;
+      } else {
+        // Align top with comfortable margin if page is taller than container
+        scrollTop = container.scrollTop + (targetRect.top - containerRect.top) - 32;
+      }
+
+      let scrollLeft: number;
+      if (targetRect.width < containerRect.width) {
+        scrollLeft = container.scrollLeft + (targetRect.left - containerRect.left) - (containerRect.width - targetRect.width) / 2;
+      } else {
+        scrollLeft = container.scrollLeft + (targetRect.left - containerRect.left) - 16;
+      }
+
+      container.scrollTo({
+        top: Math.max(0, Math.round(scrollTop)),
+        left: Math.max(0, Math.round(scrollLeft)),
+        behavior: 'smooth',
+      });
     }
   }, []);
+
+  // 5b. Active Page Detection during Viewport Scroll
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || pages.length === 0) return;
+
+    let timeoutId: any = null;
+    const handleScroll = () => {
+      if (isProgrammaticScrollRef.current) return;
+      if (timeoutId) return;
+      timeoutId = setTimeout(() => {
+        timeoutId = null;
+        if (isProgrammaticScrollRef.current) return;
+        const containerRect = container.getBoundingClientRect();
+        const containerCenter = containerRect.top + containerRect.height / 2;
+
+        let closestPage = 1;
+        let minDistance = Infinity;
+
+        pages.forEach((p) => {
+          const el = container.querySelector(`[data-page="${p.pageNum}"]`);
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            const pageCenter = rect.top + rect.height / 2;
+            const distance = Math.abs(pageCenter - containerCenter);
+            if (distance < minDistance) {
+              minDistance = distance;
+              closestPage = p.pageNum;
+            }
+          }
+        });
+
+        setCurrentPage((prev) => (prev !== closestPage ? closestPage : prev));
+      }, 50);
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [pages]);
 
   // TOC Outline destination resolver
   const handleNavigateToDest = useCallback(async (dest: any, pageNumber?: number) => {
@@ -1126,10 +1204,13 @@ export default function PDFViewer({
           onClose={() => setIsNavSidebarOpen(false)}
           activeTab={navSidebarTab}
           onTabChange={setNavSidebarTab}
+          docName={doc.name}
+          docSize={doc.size}
+          pdfDoc={pdfDoc}
+          rotation={rotation}
           totalPages={pages.length}
           currentPage={currentPage}
           onPageSelect={scrollToPage}
-          thumbnailUrls={thumbnailUrls}
           outline={outline}
           onNavigateToDest={handleNavigateToDest}
           bookmarks={bookmarks}
@@ -1157,13 +1238,21 @@ export default function PDFViewer({
               scrollToPage(pNum);
             }
           }}
+          onBackToTools={onBackToTools}
+          onOpenDocument={onOpenDocument}
+          onOpenOrganizer={onOpenOrganizer}
+          darkMode={darkMode}
+          onToggleDarkMode={onToggleDarkMode}
+          onReturnToCover={onReturnToCover}
         />
 
         {/* 4. Multi-Mode Responsive Document Viewport */}
         <div 
           ref={scrollContainerRef}
           tabIndex={0}
-          className="flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200"
+          className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 ${
+            layoutMode === 'single' ? 'justify-center min-h-full' : ''
+          }`}
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
           {loading ? (
@@ -1175,7 +1264,7 @@ export default function PDFViewer({
             layoutGroups.map((group, groupIdx) => (
               <div 
                 key={groupIdx} 
-                className={`flex items-center justify-center gap-6 ${layoutMode === 'two-page' || layoutMode === 'facing-pages' ? 'flex-row' : 'flex-col'}`}
+                className={`flex items-center justify-center gap-6 mx-auto flex-shrink-0 ${layoutMode === 'two-page' || layoutMode === 'facing-pages' ? 'flex-row' : 'flex-col'}`}
               >
                 {group.map((p) => {
                   const isRotated90or270 = rotation === 90 || rotation === 270;
@@ -1245,7 +1334,7 @@ export default function PDFViewer({
 
       </div>
 
-      {/* 5. Floating Bottom Markup & Annotation Toolbar */}
+      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (No Overlap) */}
       <FloatingAnnotationToolbar
         activeTool={activeAnnotationTool}
         onSelectTool={setActiveAnnotationTool}
@@ -1260,76 +1349,15 @@ export default function PDFViewer({
         onClearPageAnnotations={handleClearPageAnnotations}
         onExportXFDF={handleExportXFDF}
         onExportJSON={handleExportJSON}
+        scale={scale}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onZoomReset={handleZoomReset}
+        onSetScale={setScale}
+        onFitWidth={handleFitWidth}
+        onFitPage={handleFitPage}
+        focusMode={focusMode}
       />
-
-      {/* 6. Floating Zoom, Fit & Layout Toolbar */}
-      <div className={`absolute bottom-6 right-6 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/95 dark:bg-card/95 border border-border shadow-[0_10px_35px_rgba(0,0,0,0.18)] dark:shadow-[0_14px_45px_rgba(0,0,0,0.6)] backdrop-blur-md text-zinc-800 dark:text-zinc-200 select-none transition-opacity duration-300 hover:opacity-100 ${
-        focusMode ? 'opacity-30' : 'opacity-100'
-      }`}>
-        
-        {/* Fit Width */}
-        <button
-          onClick={handleFitWidth}
-          title="Fit to Width"
-          className="px-2 py-1 rounded hover:bg-card dark:hover:bg-zinc-800 text-[11px] font-mono font-medium transition-colors"
-        >
-          Fit W
-        </button>
-
-        {/* Fit Page */}
-        <button
-          onClick={handleFitPage}
-          title="Fit to Page"
-          className="px-2 py-1 rounded hover:bg-card dark:hover:bg-zinc-800 text-[11px] font-mono font-medium transition-colors"
-        >
-          Fit H
-        </button>
-
-        <div className="w-[1px] h-3.5 bg-border mx-0.5" />
-
-        {/* Zoom Out Button */}
-        <button
-          onClick={handleZoomOut}
-          disabled={scale <= 0.4}
-          title="Zoom Out (-)"
-          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-600 dark:text-zinc-300"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </button>
-
-        {/* Zoom Slider */}
-        <input
-          type="range"
-          min="40"
-          max="250"
-          step="1"
-          value={Math.round(scale * 100)}
-          onChange={(e) => setScale(parseFloat(e.target.value) / 100)}
-          className="w-24 sm:w-28 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-zinc-100"
-          title={`Zoom: ${Math.round(scale * 100)}%`}
-        />
-
-        {/* Zoom In Button */}
-        <button
-          onClick={handleZoomIn}
-          disabled={scale >= 2.5}
-          title="Zoom In (+)"
-          className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-600 dark:text-zinc-300"
-        >
-          <Plus className="h-3.5 w-3.5" />
-        </button>
-
-        <div className="w-[1px] h-3.5 bg-border mx-0.5" />
-
-        {/* Clickable Zoom Percentage Reset */}
-        <button
-          onClick={handleZoomReset}
-          title="Reset to 100%"
-          className="px-2 py-0.5 rounded hover:bg-card dark:hover:bg-zinc-800 text-[11px] font-mono font-bold text-zinc-700 dark:text-zinc-300 transition-colors"
-        >
-          {Math.round(scale * 100)}%
-        </button>
-      </div>
 
       {/* 7. Fullscreen Responsive Text Reflow Reader Modal */}
       <TextReflowView

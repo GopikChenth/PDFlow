@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import * as pdfjsLib from 'pdfjs-dist';
 import { 
   Grid, 
   ListTree, 
@@ -16,7 +17,13 @@ import {
   Mic,
   PenTool,
   Highlighter,
-  Square
+  Square,
+  ArrowLeft,
+  Layers,
+  Sun,
+  Moon,
+  Home,
+  Columns
 } from 'lucide-react';
 import { 
   NavSidebarTab, 
@@ -28,17 +35,178 @@ import {
   PDFAnnotation
 } from '../../types';
 
+interface ThumbnailCardProps {
+  pageNum: number;
+  isCurrent: boolean;
+  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
+  rotation: number;
+  onSelect: (pageNum: number) => void;
+}
+
+const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
+  pageNum,
+  isCurrent,
+  pdfDoc,
+  rotation,
+  onSelect,
+}) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [rendered, setRendered] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState<number>(0.75); // Standard portrait
+
+  // Auto-scroll the active thumbnail into view when current page changes (only if not already in view)
+  useEffect(() => {
+    if (isCurrent && containerRef.current) {
+      const el = containerRef.current;
+      const parent = el.closest('.overflow-y-auto');
+      if (parent) {
+        const parentRect = parent.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const isVisible = elRect.top >= parentRect.top && elRect.bottom <= parentRect.bottom;
+        if (!isVisible) {
+          el.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+          });
+        }
+      }
+    }
+  }, [isCurrent]);
+
+  // Lazy render thumbnail canvas with IntersectionObserver
+  useEffect(() => {
+    if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
+
+    let isCancelled = false;
+    let renderTask: any = null;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach(async (entry) => {
+          if (entry.isIntersecting && !rendered && !isCancelled) {
+            try {
+              const page = await pdfDoc.getPage(pageNum);
+              if (isCancelled || !canvasRef.current) return;
+
+              const unscaledVp = page.getViewport({ scale: 1.0, rotation });
+              const currentAspect = unscaledVp.width / unscaledVp.height;
+              setAspectRatio(currentAspect);
+
+              const targetWidth = 220;
+              const scale = targetWidth / unscaledVp.width;
+              const viewport = page.getViewport({ scale, rotation });
+
+              const canvas = canvasRef.current;
+              canvas.width = Math.floor(viewport.width);
+              canvas.height = Math.floor(viewport.height);
+              canvas.style.width = '100%';
+              canvas.style.height = 'auto';
+
+              const ctx = canvas.getContext('2d', { alpha: false });
+              if (!ctx) return;
+
+              renderTask = page.render({
+                canvasContext: ctx,
+                viewport,
+                canvas,
+              });
+
+              await renderTask.promise;
+              if (!isCancelled) {
+                setRendered(true);
+              }
+            } catch (err: any) {
+              if (err?.name !== 'RenderingCancelledException') {
+                console.error(`Thumbnail render error for page ${pageNum}:`, err);
+              }
+            }
+          }
+        });
+      },
+      {
+        root: null,
+        rootMargin: '250px 0px 250px 0px',
+        threshold: 0.01,
+      }
+    );
+
+    observer.observe(containerRef.current);
+
+    return () => {
+      isCancelled = true;
+      observer.disconnect();
+      if (renderTask) {
+        try { renderTask.cancel(); } catch {}
+      }
+    };
+  }, [pdfDoc, pageNum, rotation, rendered]);
+
+  return (
+    <div
+      ref={containerRef}
+      onClick={() => onSelect(pageNum)}
+      className={`group relative flex flex-col items-center gap-2 p-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
+        isCurrent
+          ? 'border-accent bg-accent/10 dark:bg-accent/15 ring-2 ring-accent shadow-md'
+          : 'border-border bg-card/90 dark:bg-card/70 hover:border-accent/50 hover:shadow-xs'
+      }`}
+    >
+      {/* Thumbnail Canvas Container */}
+      <div 
+        className="w-full bg-white dark:bg-zinc-900 rounded-xl border border-border/70 overflow-hidden relative shadow-xs flex items-center justify-center min-h-[110px]"
+        style={{ aspectRatio: `${aspectRatio}` }}
+      >
+        <canvas
+          ref={canvasRef}
+          className={`w-full h-auto object-contain transition-opacity duration-200 ${
+            rendered ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+        {!rendered && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-surface/50">
+            <FileText className="h-6 w-6 opacity-40 animate-pulse" />
+            <span className="text-[11px] font-mono opacity-60">Page {pageNum}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Page Number Badge */}
+      <div className="flex items-center justify-between w-full px-1.5 pt-0.5">
+        <span
+          className={`text-xs font-mono font-bold transition-colors ${
+            isCurrent ? 'text-accent' : 'text-zinc-500 group-hover:text-zinc-800 dark:group-hover:text-zinc-200'
+          }`}
+        >
+          Page {pageNum}
+        </span>
+        {isCurrent && (
+          <span className="flex items-center gap-1 text-[10px] font-mono text-accent font-semibold bg-accent/10 dark:bg-accent/20 px-1.5 py-0.5 rounded-md border border-accent/30">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+            Active
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 interface ViewerNavSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   activeTab: NavSidebarTab;
   onTabChange: (tab: NavSidebarTab) => void;
   
+  // Document Info
+  docName?: string;
+  docSize?: string;
+  pdfDoc: pdfjsLib.PDFDocumentProxy | null;
+  rotation?: number;
+
   // Thumbnails Data
   totalPages: number;
   currentPage: number;
   onPageSelect: (pageNum: number) => void;
-  thumbnailUrls?: Map<number, string>;
 
   // Outline Data
   outline: PDFOutlineNode[];
@@ -64,6 +232,14 @@ interface ViewerNavSidebarProps {
   multiDocResults: MultiDocSearchResult[];
   isMultiDocSearch: boolean;
   onSelectMatch: (pageNum: number, matchIndex: number, docId?: string) => void;
+
+  // Workspace Actions
+  onBackToTools?: () => void;
+  onOpenDocument?: () => void;
+  onOpenOrganizer?: () => void;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
+  onReturnToCover?: () => void;
 }
 
 export default function ViewerNavSidebar({
@@ -71,10 +247,13 @@ export default function ViewerNavSidebar({
   onClose,
   activeTab,
   onTabChange,
+  docName,
+  docSize,
+  pdfDoc,
+  rotation = 0,
   totalPages,
   currentPage,
   onPageSelect,
-  thumbnailUrls,
   outline,
   onNavigateToDest,
   bookmarks,
@@ -90,11 +269,20 @@ export default function ViewerNavSidebar({
   multiDocResults,
   isMultiDocSearch,
   onSelectMatch,
+  onBackToTools,
+  onOpenDocument,
+  onOpenOrganizer,
+  darkMode,
+  onToggleDarkMode,
+  onReturnToCover,
 }: ViewerNavSidebarProps) {
   // New bookmark state
   const [newBookmarkTitle, setNewBookmarkTitle] = useState('');
   const [newBookmarkColor, setNewBookmarkColor] = useState('#e63946');
   const [showAddBookmarkForm, setShowAddBookmarkForm] = useState(false);
+
+  // Thumbnail columns view mode (1 column vs 2 columns - default 1 column per row)
+  const [thumbnailColumns, setThumbnailColumns] = useState<'1' | '2'>('1');
 
   // Outline expansion toggle state
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['root']));
@@ -164,7 +352,7 @@ export default function ViewerNavSidebar({
   };
 
   const navTabs: { id: NavSidebarTab; label: string; icon: React.FC<{ className?: string }>; count?: number }[] = [
-    { id: 'thumbnails', label: 'Thumbnails', icon: Grid, count: totalPages },
+    { id: 'thumbnails', label: 'Pages', icon: Grid, count: totalPages },
     { id: 'outline', label: 'Outline', icon: ListTree, count: outline.length },
     { id: 'annotations', label: 'Comments', icon: MessageSquare, count: annotations.length },
     { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark, count: bookmarks.length },
@@ -173,10 +361,71 @@ export default function ViewerNavSidebar({
   ];
 
   return (
-    <aside className="w-72 h-full flex flex-col border-r border-border bg-surface/70 dark:bg-surface/50 backdrop-blur-md flex-shrink-0 z-30 select-none">
+    <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 backdrop-blur-md flex-shrink-0 z-30 select-none">
       
-      {/* 1. Header with Tab Switches & Close */}
-      <div className="p-2.5 border-b border-border flex items-center justify-between gap-1.5">
+      {/* 1. Header with Document Context & Back to Tools Navigation */}
+      <div className="p-3 border-b border-border flex flex-col gap-2.5 flex-shrink-0">
+        
+        {/* Top bar: Back to Tools + Open Doc */}
+        <div className="flex items-center justify-between gap-1.5">
+          {onBackToTools ? (
+            <button
+              onClick={onBackToTools}
+              title="Return to Workspace Tools"
+              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-card border border-border/60 hover:border-border transition-colors shadow-2xs group"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 text-zinc-500 group-hover:text-accent transition-colors" />
+              <span>Tools</span>
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5 px-1 font-bold text-xs">
+              <div className="h-6 w-6 rounded bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs">
+                P
+              </div>
+              <span>PDF Studio</span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-1">
+            {onOpenDocument && (
+              <button
+                onClick={onOpenDocument}
+                title="Open another PDF (⌘O)"
+                className="h-7 px-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-accent dark:hover:bg-accent dark:hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors shadow-2xs"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Open</span>
+              </button>
+            )}
+
+            <button
+              onClick={onClose}
+              title="Collapse Pages Sidebar"
+              className="h-7 w-7 rounded-lg hover:bg-card dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Document Title & Meta */}
+        {docName && (
+          <div className="flex items-center gap-2 p-2 rounded-xl bg-card/70 border border-border/60">
+            <div className="h-8 w-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
+              <FileText className="h-4 w-4" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate" title={docName}>
+                {docName}
+              </h3>
+              <p className="text-[10px] font-mono text-zinc-400 mt-0.5 truncate">
+                {totalPages} Pages {docSize ? `• ${docSize}` : ''}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Tab Buttons */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
           {navTabs.map((tab) => {
             const Icon = tab.icon;
@@ -193,8 +442,9 @@ export default function ViewerNavSidebar({
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
+                <span className="text-[11px] hidden sm:inline">{tab.label}</span>
                 {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className="text-[10px] font-mono opacity-70">
+                  <span className="text-[9px] font-mono opacity-70 bg-black/5 dark:bg-white/10 px-1 py-0.2 rounded">
                     {tab.count}
                   </span>
                 )}
@@ -203,51 +453,50 @@ export default function ViewerNavSidebar({
           })}
         </div>
 
-        <button
-          onClick={onClose}
-          title="Close Navigation Drawer"
-          className="h-7 w-7 rounded-lg hover:bg-card dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors flex-shrink-0"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
       </div>
 
-      {/* 2. Tab Content Area */}
+      {/* 2. Tab Content Area (Page Thumbnails, TOC, Comments, Bookmarks, Files, Search) */}
       <div className="flex-1 overflow-y-auto p-3 overscroll-contain">
         
-        {/* TAB 1: THUMBNAILS */}
+        {/* TAB 1: THUMBNAILS (PAGES) */}
         {activeTab === 'thumbnails' && (
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
-              const isCurrent = pageNum === currentPage;
-              const thumbUrl = thumbnailUrls?.get(pageNum);
-
-              return (
-                <div
-                  key={pageNum}
-                  onClick={() => onPageSelect(pageNum)}
-                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border transition-all cursor-pointer group ${
-                    isCurrent 
-                      ? 'border-accent bg-accent/5 ring-1 ring-accent' 
-                      : 'border-border bg-card hover:border-zinc-400 dark:hover:border-zinc-600'
-                  }`}
+          <div className="flex flex-col gap-2.5">
+            
+            {/* View Mode Toggle Header */}
+            <div className="flex items-center justify-between px-1 text-[11px] font-mono text-zinc-400">
+              <span>{totalPages} Total Pages</span>
+              <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg p-0.5">
+                <button
+                  onClick={() => setThumbnailColumns('1')}
+                  title="Single Column View"
+                  className={`p-1 rounded ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'hover:text-zinc-700 dark:hover:text-zinc-200'}`}
                 >
-                  <div className="w-full aspect-[1/1.3] bg-surface rounded-md border border-border flex items-center justify-center overflow-hidden relative shadow-xs">
-                    {thumbUrl ? (
-                      <img src={thumbUrl} alt={`Page ${pageNum}`} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="flex flex-col items-center gap-1 text-zinc-400">
-                        <FileText className="h-5 w-5" />
-                        <span className="text-[10px] font-mono">Page {pageNum}</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className={`text-[11px] font-mono font-medium ${isCurrent ? 'text-accent font-bold' : 'text-zinc-500'}`}>
-                    {pageNum}
-                  </span>
-                </div>
-              );
-            })}
+                  <Columns className="h-3 w-3" />
+                </button>
+                <button
+                  onClick={() => setThumbnailColumns('2')}
+                  title="2-Column Grid View"
+                  className={`p-1 rounded ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+                >
+                  <Grid className="h-3 w-3" />
+                </button>
+              </div>
+            </div>
+
+            {/* Thumbnails Grid / List */}
+            <div className={`grid gap-2.5 ${thumbnailColumns === '2' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                <ThumbnailCard
+                  key={pageNum}
+                  pageNum={pageNum}
+                  isCurrent={pageNum === currentPage}
+                  pdfDoc={pdfDoc}
+                  rotation={rotation}
+                  onSelect={onPageSelect}
+                />
+              ))}
+            </div>
+
           </div>
         )}
 
@@ -552,6 +801,47 @@ export default function ViewerNavSidebar({
           </div>
         )}
 
+      </div>
+
+      {/* 3. Sidebar Footer Actions */}
+      <div className="p-3 border-t border-border flex flex-col gap-2 flex-shrink-0 bg-surface/40">
+        {onOpenOrganizer && (
+          <button
+            onClick={onOpenOrganizer}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-card border border-border hover:border-accent text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-xs group"
+          >
+            <span className="flex items-center gap-2">
+              <Layers className="h-4 w-4 text-accent" />
+              <span>Page Organizer</span>
+            </span>
+            <span className="text-[10px] font-mono text-zinc-400 group-hover:text-accent transition-colors">
+              Reorder
+            </span>
+          </button>
+        )}
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          {onToggleDarkMode && (
+            <button
+              onClick={onToggleDarkMode}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-2xs"
+            >
+              {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
+              <span>{darkMode ? 'Light' : 'Dark'}</span>
+            </button>
+          )}
+
+          {onReturnToCover && (
+            <button
+              onClick={onReturnToCover}
+              className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
+              title="Return to Presentation Cover"
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span>Cover</span>
+            </button>
+          )}
+        </div>
       </div>
 
     </aside>

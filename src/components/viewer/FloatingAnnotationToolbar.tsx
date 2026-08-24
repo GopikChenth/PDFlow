@@ -9,7 +9,8 @@ import {
   PenTool, 
   Square, 
   ArrowUpRight, 
-  Minus as LineIcon, 
+  Minus, 
+  Plus,
   Hexagon, 
   Ruler, 
   DraftingCompass, 
@@ -73,6 +74,15 @@ interface FloatingAnnotationToolbarProps {
   onClearPageAnnotations: () => void;
   onExportXFDF: () => void;
   onExportJSON: () => void;
+  // Zoom & View Controls
+  scale?: number;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onZoomReset?: () => void;
+  onSetScale?: (scale: number) => void;
+  onFitWidth?: () => void;
+  onFitPage?: () => void;
+  focusMode?: boolean;
 }
 
 export default function FloatingAnnotationToolbar({
@@ -89,6 +99,14 @@ export default function FloatingAnnotationToolbar({
   onClearPageAnnotations,
   onExportXFDF,
   onExportJSON,
+  scale,
+  onZoomIn,
+  onZoomOut,
+  onZoomReset,
+  onSetScale,
+  onFitWidth,
+  onFitPage,
+  focusMode,
 }: FloatingAnnotationToolbarProps) {
   const [showMarkupMenu, setShowMarkupMenu] = useState(false);
   const [showShapesMenu, setShowShapesMenu] = useState(false);
@@ -109,7 +127,9 @@ export default function FloatingAnnotationToolbar({
   const isMeasureActive = MEASURE_TOOLS.has(activeTool);
 
   return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-surface/95 dark:bg-card/95 border border-border shadow-[0_12px_40px_rgba(0,0,0,0.22)] dark:shadow-[0_16px_50px_rgba(0,0,0,0.7)] backdrop-blur-xl text-zinc-800 dark:text-zinc-200 select-none animate-in fade-in slide-in-from-bottom-3 duration-200">
+    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] overflow-x-auto no-scrollbar flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-2xl bg-surface/90 dark:bg-zinc-900/90 border border-border/80 shadow-[0_16px_50px_rgba(0,0,0,0.22)] dark:shadow-[0_20px_60px_rgba(0,0,0,0.7)] backdrop-blur-2xl text-zinc-800 dark:text-zinc-200 select-none ring-1 ring-black/5 dark:ring-white/10 animate-in fade-in slide-in-from-bottom-3 duration-200 ${
+      focusMode ? 'opacity-30 hover:opacity-100' : 'opacity-100'
+    }`}>
       
       {/* 1. Pointer / Select Tool */}
       <button
@@ -118,7 +138,7 @@ export default function FloatingAnnotationToolbar({
           closeAllMenus();
         }}
         title="Select & Navigate (V)"
-        className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all ${
+        className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'select' 
             ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs' 
             : 'hover:bg-card dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
@@ -127,10 +147,10 @@ export default function FloatingAnnotationToolbar({
         <MousePointer className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-border mx-0.5" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 2. Text Markup Group Dropdown */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           onClick={() => {
             setShowMarkupMenu((p) => !p);
@@ -140,7 +160,7 @@ export default function FloatingAnnotationToolbar({
             setShowExportMenu(false);
           }}
           title="Text Markup Tools (Highlight, Underline, Strikeout, Squiggly, Callout)"
-          className={`h-8 px-2 rounded-xl border flex items-center gap-1 text-xs font-semibold transition-all ${
+          className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isTextMarkupActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
               : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
@@ -204,7 +224,7 @@ export default function FloatingAnnotationToolbar({
       </div>
 
       {/* 3. Drawing & Shapes Group Dropdown */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           onClick={() => {
             setShowShapesMenu((p) => !p);
@@ -214,7 +234,7 @@ export default function FloatingAnnotationToolbar({
             setShowExportMenu(false);
           }}
           title="Drawing & Shapes (Pen, Rectangle, Arrow, Line, Polygon)"
-          className={`h-8 px-2 rounded-xl border flex items-center gap-1 text-xs font-semibold transition-all ${
+          className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isShapeActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
               : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
@@ -223,7 +243,7 @@ export default function FloatingAnnotationToolbar({
           {activeTool === 'pen' ? <PenTool className="h-3.5 w-3.5" /> :
            activeTool === 'rectangle' ? <Square className="h-3.5 w-3.5" /> :
            activeTool === 'arrow' ? <ArrowUpRight className="h-3.5 w-3.5" /> :
-           activeTool === 'line' ? <LineIcon className="h-3.5 w-3.5" /> :
+           activeTool === 'line' ? <Minus className="h-3.5 w-3.5" /> :
            activeTool === 'polygon' ? <Hexagon className="h-3.5 w-3.5" /> :
            <PenTool className="h-3.5 w-3.5" />}
           <span className="hidden sm:inline capitalize">
@@ -263,7 +283,7 @@ export default function FloatingAnnotationToolbar({
               onClick={() => onSelectTool('line')}
               className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'line' ? 'bg-accent text-white font-bold' : 'hover:bg-surface'}`}
             >
-              <LineIcon className="h-3.5 w-3.5" />
+              <Minus className="h-3.5 w-3.5" />
               <span>Line</span>
             </button>
             <button
@@ -278,7 +298,7 @@ export default function FloatingAnnotationToolbar({
       </div>
 
       {/* 4. Measurement Tools Dropdown */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           onClick={() => {
             setShowMeasureMenu((p) => !p);
@@ -288,7 +308,7 @@ export default function FloatingAnnotationToolbar({
             setShowExportMenu(false);
           }}
           title="Measuring Tools (Distance / Perimeter & Area)"
-          className={`h-8 px-2 rounded-xl border flex items-center gap-1 text-xs font-semibold transition-all ${
+          className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isMeasureActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
               : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
@@ -329,7 +349,7 @@ export default function FloatingAnnotationToolbar({
         )}
       </div>
 
-      <div className="w-[1px] h-4 bg-border mx-0.5" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 5. Text Box Tool */}
       <button
@@ -338,7 +358,7 @@ export default function FloatingAnnotationToolbar({
           closeAllMenus();
         }}
         title="Text Box Tool (T) — Click anywhere on canvas to type"
-        className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all ${
+        className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'textbox' 
             ? 'bg-accent text-white shadow-xs' 
             : 'hover:bg-card dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
@@ -354,7 +374,7 @@ export default function FloatingAnnotationToolbar({
           closeAllMenus();
         }}
         title="Sticky Note (N) — Click anywhere to add a threaded comment pin"
-        className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all ${
+        className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'sticky-note' 
             ? 'bg-amber-500 text-white shadow-xs' 
             : 'hover:bg-card dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
@@ -370,7 +390,7 @@ export default function FloatingAnnotationToolbar({
           closeAllMenus();
         }}
         title="Voice Note (M) — Click anywhere to record an embedded voice comment"
-        className={`h-8 w-8 rounded-xl flex items-center justify-center transition-all ${
+        className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'voice-note' 
             ? 'bg-rose-500 text-white shadow-xs' 
             : 'hover:bg-card dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
@@ -379,10 +399,10 @@ export default function FloatingAnnotationToolbar({
         <Mic className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-border mx-0.5" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 8. Color Palette & Stroke Picker Dropdown */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           onClick={() => {
             setShowColorMenu((p) => !p);
@@ -456,14 +476,14 @@ export default function FloatingAnnotationToolbar({
         )}
       </div>
 
-      <div className="w-[1px] h-4 bg-border mx-0.5" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 9. Undo / Redo */}
       <button
         onClick={onUndo}
         disabled={!canUndo}
         title="Undo Annotation (⌘Z)"
-        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors"
+        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
       >
         <Undo2 className="h-4 w-4" />
       </button>
@@ -472,15 +492,15 @@ export default function FloatingAnnotationToolbar({
         onClick={onRedo}
         disabled={!canRedo}
         title="Redo Annotation (⌘⇧Z)"
-        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors"
+        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
       >
         <Redo2 className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-border mx-0.5" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 10. Export Annotations Dropdown */}
-      <div className="relative">
+      <div className="relative flex-shrink-0">
         <button
           onClick={() => {
             setShowExportMenu((p) => !p);
@@ -490,7 +510,7 @@ export default function FloatingAnnotationToolbar({
             setShowColorMenu(false);
           }}
           title="Export Annotations (XFDF / JSON)"
-          className="h-8 px-2 rounded-xl border border-border hover:bg-card flex items-center gap-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-all shadow-xs"
+          className="h-8 px-2.5 rounded-xl border border-border hover:bg-card flex items-center gap-1 text-xs font-semibold whitespace-nowrap text-zinc-700 dark:text-zinc-300 transition-all shadow-xs"
         >
           <Download className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Export</span>
@@ -530,10 +550,82 @@ export default function FloatingAnnotationToolbar({
       <button
         onClick={onClearPageAnnotations}
         title="Clear annotations on this page"
-        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 text-zinc-400 transition-colors"
+        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-rose-500/10 hover:text-rose-500 text-zinc-400 transition-colors flex-shrink-0"
       >
         <Trash2 className="h-4 w-4" />
       </button>
+
+      {/* 12. Zoom & Layout Controls (Unified inside same dock with clean layout) */}
+      {typeof scale === 'number' && (
+        <>
+          <div className="w-[1px] h-5 bg-border/80 mx-1 flex-shrink-0" />
+
+          {onFitWidth && (
+            <button
+              onClick={onFitWidth}
+              title="Fit to Width"
+              className="h-8 px-2.5 rounded-xl hover:bg-card border border-transparent hover:border-border text-xs font-semibold whitespace-nowrap text-zinc-700 dark:text-zinc-300 transition-all flex items-center gap-1 flex-shrink-0"
+            >
+              <span>Fit W</span>
+            </button>
+          )}
+
+          {onFitPage && (
+            <button
+              onClick={onFitPage}
+              title="Fit to Page"
+              className="h-8 px-2.5 rounded-xl hover:bg-card border border-transparent hover:border-border text-xs font-semibold whitespace-nowrap text-zinc-700 dark:text-zinc-300 transition-all hidden sm:inline-flex items-center gap-1 flex-shrink-0"
+            >
+              <span>Fit H</span>
+            </button>
+          )}
+
+          {onZoomOut && (
+            <button
+              onClick={onZoomOut}
+              disabled={scale <= 0.4}
+              title="Zoom Out (-)"
+              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-600 dark:text-zinc-300 flex-shrink-0"
+            >
+              <Minus className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {onSetScale && (
+            <input
+              type="range"
+              min="40"
+              max="250"
+              step="1"
+              value={Math.round(scale * 100)}
+              onChange={(e) => onSetScale(parseFloat(e.target.value) / 100)}
+              className="w-16 sm:w-20 md:w-24 h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer accent-zinc-900 dark:accent-zinc-100 hidden md:inline-block flex-shrink-0"
+              title={`Zoom: ${Math.round(scale * 100)}%`}
+            />
+          )}
+
+          {onZoomIn && (
+            <button
+              onClick={onZoomIn}
+              disabled={scale >= 2.5}
+              title="Zoom In (+)"
+              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-600 dark:text-zinc-300 flex-shrink-0"
+            >
+              <Plus className="h-3.5 w-3.5" />
+            </button>
+          )}
+
+          {onZoomReset && (
+            <button
+              onClick={onZoomReset}
+              title="Reset to 100%"
+              className="h-8 px-2.5 rounded-xl bg-card border border-border/80 hover:border-accent text-xs font-mono font-bold text-zinc-800 dark:text-zinc-200 transition-all whitespace-nowrap shadow-2xs flex-shrink-0"
+            >
+              {Math.round(scale * 100)}%
+            </button>
+          )}
+        </>
+      )}
 
     </div>
   );

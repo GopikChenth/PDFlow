@@ -197,122 +197,124 @@ export default function WorkspacePage({
         className="hidden"
       />
 
-      {/* 1. Left Sidebar Navigation */}
-      <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface/50 dark:bg-surface/30 backdrop-blur-md p-4">
-        <div className="flex flex-col gap-6">
-          
-          {/* Brand Header with Home Action */}
-          <button 
-            onClick={onReturnToCover}
-            className="flex items-center gap-3 px-2 text-left hover:opacity-80 transition-opacity group"
-            title="Return to Presentation Cover"
-          >
-            <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center font-extrabold text-sm shadow-md group-hover:bg-accent group-hover:text-white transition-colors">
-              P
-            </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">PDF Studio</h1>
-                <ChevronLeft className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-accent" />
-              </div>
-            </div>
-          </button>
-
-          {/* Primary Action Button: Open Document */}
-          <button 
-            onClick={handleTriggerOpenFile}
-            className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm group active:scale-[0.98]"
-          >
-            <span className="flex items-center gap-2">
-              <Plus className="h-4 w-4" /> Open Document
-            </span>
-            <span className="text-[10px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-1.5 py-0.5 rounded">
-              ⌘O
-            </span>
-          </button>
-
-          {/* Workspace Nav Group */}
-          <div className="flex flex-col gap-1">
-            <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
-              Workspace
-            </span>
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              const count = item.id === 'recent' ? recentDocs.length : undefined;
-
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    isActive 
-                      ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
-                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
-                  }`}
-                >
-                  <span className="flex items-center gap-2.5">
-                    <Icon className="h-4 w-4" /> {item.label}
-                  </span>
-                  {typeof count === 'number' && count > 0 && (
-                    <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Offline Tools Nav Group */}
-          <div className="flex flex-col gap-1">
-            <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
-              Offline Tools
-            </span>
-            {TOOL_ITEMS.map((tool) => {
-              const Icon = tool.icon;
-              const isActive = activeTab === tool.id;
-              return (
-                <button
-                  key={tool.id}
-                  onClick={() => setActiveTab(tool.id)}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                    isActive 
-                      ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
-                      : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" /> {tool.label}
-                </button>
-              );
-            })}
-          </div>
-
-        </div>
-
-        {/* Sidebar Footer */}
-        <div className="flex flex-col gap-2 pt-3 pb-1 border-t border-border flex-shrink-0">
-          <div className="flex items-center justify-between gap-2 px-1">
-            <button
-              onClick={onToggleDarkMode}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-xs"
-            >
-              {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
-              <span>{darkMode ? 'Light' : 'Dark'}</span>
-            </button>
-
-            <button
+      {/* 1. Left Sidebar Navigation (Hidden when viewing an active document in PDF Viewer so PDF Pages sidebar is primary) */}
+      {!(activeTab === 'viewer' && activeDoc) && (
+        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface/50 dark:bg-surface/30 backdrop-blur-md p-4">
+          <div className="flex flex-col gap-6">
+            
+            {/* Brand Header with Home Action */}
+            <button 
               onClick={onReturnToCover}
-              className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
+              className="flex items-center gap-3 px-2 text-left hover:opacity-80 transition-opacity group"
               title="Return to Presentation Cover"
             >
-              <Home className="h-3.5 w-3.5" />
-              <span>Cover</span>
+              <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center font-extrabold text-sm shadow-md group-hover:bg-accent group-hover:text-white transition-colors">
+                P
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">PDF Studio</h1>
+                  <ChevronLeft className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-accent" />
+                </div>
+              </div>
             </button>
-          </div>
-        </div>
 
-      </aside>
+            {/* Primary Action Button: Open Document */}
+            <button 
+              onClick={handleTriggerOpenFile}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-sm group active:scale-[0.98]"
+            >
+              <span className="flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Open Document
+              </span>
+              <span className="text-[10px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-1.5 py-0.5 rounded">
+                ⌘O
+              </span>
+            </button>
+
+            {/* Workspace Nav Group */}
+            <div className="flex flex-col gap-1">
+              <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                Workspace
+              </span>
+              {NAV_ITEMS.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                const count = item.id === 'recent' ? recentDocs.length : undefined;
+
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      isActive 
+                        ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    <span className="flex items-center gap-2.5">
+                      <Icon className="h-4 w-4" /> {item.label}
+                    </span>
+                    {typeof count === 'number' && count > 0 && (
+                      <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Offline Tools Nav Group */}
+            <div className="flex flex-col gap-1">
+              <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                Offline Tools
+              </span>
+              {TOOL_ITEMS.map((tool) => {
+                const Icon = tool.icon;
+                const isActive = activeTab === tool.id;
+                return (
+                  <button
+                    key={tool.id}
+                    onClick={() => setActiveTab(tool.id)}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                      isActive 
+                        ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" /> {tool.label}
+                  </button>
+                );
+              })}
+            </div>
+
+          </div>
+
+          {/* Sidebar Footer */}
+          <div className="flex flex-col gap-2 pt-3 pb-1 border-t border-border flex-shrink-0">
+            <div className="flex items-center justify-between gap-2 px-1">
+              <button
+                onClick={onToggleDarkMode}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-xs"
+              >
+                {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
+                <span>{darkMode ? 'Light' : 'Dark'}</span>
+              </button>
+
+              <button
+                onClick={onReturnToCover}
+                className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
+                title="Return to Presentation Cover"
+              >
+                <Home className="h-3.5 w-3.5" />
+                <span>Cover</span>
+              </button>
+            </div>
+          </div>
+
+        </aside>
+      )}
 
       {/* 2. Main Workspace Viewport */}
       <main className="flex-1 flex flex-col overflow-hidden relative">
@@ -371,6 +373,12 @@ export default function WorkspacePage({
                 allDocs={recentDocs}
                 onClose={handleCloseViewer} 
                 onSelectDoc={(d) => setActiveDoc(d)}
+                onBackToTools={() => setActiveTab('recent')}
+                onOpenDocument={handleTriggerOpenFile}
+                onOpenOrganizer={() => setActiveTab('organizer')}
+                darkMode={darkMode}
+                onToggleDarkMode={onToggleDarkMode}
+                onReturnToCover={onReturnToCover}
               />
             ) : (
               <EmptyState
