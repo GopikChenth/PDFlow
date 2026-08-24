@@ -425,18 +425,17 @@ export default function PDFViewer({
       const actualRenderScale = currentScale * pixelRatio;
       const viewport = page.getViewport({ scale: actualRenderScale, rotation: rot });
 
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
-      canvas.style.width = `${Math.floor(viewport.width / pixelRatio)}px`;
-      canvas.style.height = `${Math.floor(viewport.height / pixelRatio)}px`;
-
-      const ctx = canvas.getContext('2d', { alpha: false });
-      if (!ctx) return;
+      // Double-buffered rendering via offscreen canvas: avoids blanking the existing screen
+      const offscreenCanvas = document.createElement('canvas');
+      offscreenCanvas.width = Math.floor(viewport.width);
+      offscreenCanvas.height = Math.floor(viewport.height);
+      const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
+      if (!offscreenCtx) return;
 
       const renderContext = {
-        canvasContext: ctx,
+        canvasContext: offscreenCtx,
         viewport,
-        canvas,
+        canvas: offscreenCanvas,
       };
 
       const task = page.render(renderContext);
@@ -444,6 +443,14 @@ export default function PDFViewer({
       await task.promise;
       
       activeRenderTasksRef.current.delete(pageNum);
+
+      // Instantly paint the completed high-res frame to visible canvas with zero flicker
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
+      const ctx = canvas.getContext('2d', { alpha: false });
+      if (ctx) {
+        ctx.drawImage(offscreenCanvas, 0, 0);
+      }
       renderedPagesRef.current.add(renderKey);
 
       // Render Official PDF.js Text Selection Layer
@@ -504,7 +511,7 @@ export default function PDFViewer({
     return () => {
       observer.disconnect();
     };
-  }, [pdfDoc, pages, rotation, scale, renderCanvasPage, layoutMode]);
+  }, [pdfDoc, pages, layoutMode]);
 
   // Re-render visible pages on scale / rotation change (debounced for smooth zooming)
   useEffect(() => {
@@ -519,7 +526,7 @@ export default function PDFViewer({
           }
         }
       });
-    }, 80);
+    }, 120);
 
     return () => clearTimeout(timer);
   }, [scale, rotation, pages, renderCanvasPage]);
@@ -1289,10 +1296,10 @@ export default function PDFViewer({
                           if (el) canvasMapRef.current.set(p.pageNum, el);
                           else canvasMapRef.current.delete(p.pageNum);
                         }}
-                        className="block absolute inset-0 pointer-events-none"
+                        className="block absolute inset-0 pointer-events-none w-full h-full"
                         style={{
-                          width: `${displayWidth}px`,
-                          height: `${displayHeight}px`,
+                          width: '100%',
+                          height: '100%',
                         }}
                       />
 
