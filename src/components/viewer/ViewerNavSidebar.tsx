@@ -18,7 +18,6 @@ import {
   PenTool,
   Highlighter,
   Square,
-  ArrowLeft,
   Layers,
   Sun,
   Moon,
@@ -247,8 +246,8 @@ export default function ViewerNavSidebar({
   onClose,
   activeTab,
   onTabChange,
-  docName,
-  docSize,
+  docName: _docName,
+  docSize: _docSize,
   pdfDoc,
   rotation = 0,
   totalPages,
@@ -269,8 +268,8 @@ export default function ViewerNavSidebar({
   multiDocResults,
   isMultiDocSearch,
   onSelectMatch,
-  onBackToTools,
-  onOpenDocument,
+  onBackToTools: _onBackToTools,
+  onOpenDocument: _onOpenDocument,
   onOpenOrganizer,
   darkMode,
   onToggleDarkMode,
@@ -361,72 +360,11 @@ export default function ViewerNavSidebar({
   ];
 
   return (
-    <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 backdrop-blur-md flex-shrink-0 z-30 select-none">
+    <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 flex-shrink-0 z-30 select-none">
       
-      {/* 1. Header with Document Context & Back to Tools Navigation */}
-      <div className="p-3 border-b border-border flex flex-col gap-2.5 flex-shrink-0">
-        
-        {/* Top bar: Back to Tools + Open Doc */}
-        <div className="flex items-center justify-between gap-1.5">
-          {onBackToTools ? (
-            <button
-              onClick={onBackToTools}
-              title="Return to Workspace Tools"
-              className="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-card border border-border/60 hover:border-border transition-colors shadow-2xs group"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 text-zinc-500 group-hover:text-accent transition-colors" />
-              <span>Tools</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-1 font-bold text-xs">
-              <div className="h-6 w-6 rounded bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center text-xs">
-                P
-              </div>
-              <span>PDF Studio</span>
-            </div>
-          )}
-
-          <div className="flex items-center gap-1">
-            {onOpenDocument && (
-              <button
-                onClick={onOpenDocument}
-                title="Open another PDF (⌘O)"
-                className="h-7 px-2 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-accent dark:hover:bg-accent dark:hover:text-white flex items-center gap-1 text-[11px] font-semibold transition-colors shadow-2xs"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Open</span>
-              </button>
-            )}
-
-            <button
-              onClick={onClose}
-              title="Collapse Pages Sidebar"
-              className="h-7 w-7 rounded-lg hover:bg-card dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-
-        {/* Document Title & Meta */}
-        {docName && (
-          <div className="flex items-center gap-2 p-2 rounded-xl bg-card/70 border border-border/60">
-            <div className="h-8 w-8 rounded-lg bg-accent/10 text-accent flex items-center justify-center flex-shrink-0">
-              <FileText className="h-4 w-4" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate" title={docName}>
-                {docName}
-              </h3>
-              <p className="text-[10px] font-mono text-zinc-400 mt-0.5 truncate">
-                {totalPages} Pages {docSize ? `• ${docSize}` : ''}
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Tab Buttons */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
+      {/* 1. Navigation Tab Strip Header */}
+      <div className="p-2 border-b border-border flex items-center justify-between gap-1 flex-shrink-0 bg-card/60 dark:bg-card/40">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1">
           {navTabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -435,16 +373,16 @@ export default function ViewerNavSidebar({
                 key={tab.id}
                 onClick={() => onTabChange(tab.id)}
                 title={tab.label}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
                   isActive 
-                    ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-xs font-semibold' 
-                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-card/40'
+                    ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-xs font-bold' 
+                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-card/50'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />
-                <span className="text-[11px] hidden sm:inline">{tab.label}</span>
+                <span className="text-[11px] font-semibold">{tab.label}</span>
                 {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className="text-[9px] font-mono opacity-70 bg-black/5 dark:bg-white/10 px-1 py-0.2 rounded">
+                  <span className="text-[9px] font-mono opacity-70 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
                     {tab.count}
                   </span>
                 )}
@@ -453,6 +391,14 @@ export default function ViewerNavSidebar({
           })}
         </div>
 
+        {/* Quick Close / Collapse Button */}
+        <button
+          onClick={onClose}
+          title="Collapse Pages Sidebar"
+          className="h-7 w-7 rounded-lg hover:bg-card dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors flex-shrink-0"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       {/* 2. Tab Content Area (Page Thumbnails, TOC, Comments, Bookmarks, Files, Search) */}
