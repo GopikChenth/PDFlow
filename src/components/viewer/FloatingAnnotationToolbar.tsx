@@ -127,7 +127,7 @@ export default function FloatingAnnotationToolbar({
   const isMeasureActive = MEASURE_TOOLS.has(activeTool);
 
   return (
-    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] overflow-x-auto no-scrollbar flex items-center gap-1 sm:gap-1.5 px-3.5 py-2 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-[0_12px_40px_rgba(0,0,0,0.18)] dark:shadow-[0_18px_50px_rgba(0,0,0,0.7)] text-zinc-800 dark:text-zinc-200 select-none ring-1 ring-black/5 dark:ring-white/10 animate-in fade-in slide-in-from-bottom-3 duration-200 ${
+    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] overflow-x-auto no-scrollbar flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-2xl !bg-white dark:!bg-zinc-900 border border-zinc-300 dark:border-zinc-700 shadow-2xl text-zinc-800 dark:text-zinc-200 select-none animate-in fade-in slide-in-from-bottom-3 duration-200 ${
       focusMode ? 'opacity-30 hover:opacity-100' : 'opacity-100'
     }`}>
       

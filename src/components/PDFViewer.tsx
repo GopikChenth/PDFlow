@@ -421,7 +421,7 @@ export default function PDFViewer({
 
     try {
       const page = await pdfDoc.getPage(pageNum);
-      const pixelRatio = Math.max(window.devicePixelRatio || 1, 2);
+      const pixelRatio = Math.max(window.devicePixelRatio || 1, 2.5);
       const actualRenderScale = currentScale * pixelRatio;
       const viewport = page.getViewport({ scale: actualRenderScale, rotation: rot });
 
@@ -431,6 +431,8 @@ export default function PDFViewer({
       offscreenCanvas.height = Math.floor(viewport.height);
       const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
       if (!offscreenCtx) return;
+      offscreenCtx.imageSmoothingEnabled = true;
+      offscreenCtx.imageSmoothingQuality = 'high';
 
       const renderContext = {
         canvasContext: offscreenCtx,
@@ -449,6 +451,8 @@ export default function PDFViewer({
       canvas.height = Math.floor(viewport.height);
       const ctx = canvas.getContext('2d', { alpha: false });
       if (ctx) {
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(offscreenCanvas, 0, 0);
       }
       renderedPagesRef.current.add(renderKey);

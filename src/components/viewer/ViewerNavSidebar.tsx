@@ -92,7 +92,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               const currentAspect = unscaledVp.width / unscaledVp.height;
               setAspectRatio(currentAspect);
 
-              const targetWidth = 220;
+              const pixelRatio = Math.max(window.devicePixelRatio || 1, 2);
+              const targetWidth = 300 * pixelRatio;
               const scale = targetWidth / unscaledVp.width;
               const viewport = page.getViewport({ scale, rotation });
 
@@ -104,6 +105,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
 
               const ctx = canvas.getContext('2d', { alpha: false });
               if (!ctx) return;
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
 
               renderTask = page.render({
                 canvasContext: ctx,
