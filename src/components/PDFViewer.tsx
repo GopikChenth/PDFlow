@@ -291,7 +291,13 @@ export default function PDFViewer({
     activeRenderTasksRef.current.clear();
     canvasMapRef.current.clear();
 
-    const loadingTask = pdfjsLib.getDocument(doc.blobUrl);
+    const loadingTask = pdfjsLib.getDocument({
+      url: doc.blobUrl,
+      cMapUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/cmaps/',
+      cMapPacked: true,
+      standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/standard_fonts/',
+      enableXfa: true,
+    });
     loadingTask.promise.then(async (loadedPdf) => {
       if (isCancelled) {
         try { loadedPdf.destroy(); } catch {}
@@ -421,22 +427,25 @@ export default function PDFViewer({
 
     try {
       const page = await pdfDoc.getPage(pageNum);
-      const pixelRatio = Math.max(window.devicePixelRatio || 1, 2.5);
-      const actualRenderScale = currentScale * pixelRatio;
-      const viewport = page.getViewport({ scale: actualRenderScale, rotation: rot });
+      const outputScale = window.devicePixelRatio || 1;
+      const viewport = page.getViewport({ scale: currentScale, rotation: rot });
+
+      const scaledWidth = Math.floor(viewport.width * outputScale);
+      const scaledHeight = Math.floor(viewport.height * outputScale);
 
       // Double-buffered rendering via offscreen canvas: avoids blanking the existing screen
       const offscreenCanvas = document.createElement('canvas');
-      offscreenCanvas.width = Math.floor(viewport.width);
-      offscreenCanvas.height = Math.floor(viewport.height);
+      offscreenCanvas.width = scaledWidth;
+      offscreenCanvas.height = scaledHeight;
       const offscreenCtx = offscreenCanvas.getContext('2d', { alpha: false });
       if (!offscreenCtx) return;
-      offscreenCtx.imageSmoothingEnabled = true;
-      offscreenCtx.imageSmoothingQuality = 'high';
+
+      const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
       const renderContext = {
         canvasContext: offscreenCtx,
-        viewport,
+        transform: transform,
+        viewport: viewport,
         canvas: offscreenCanvas,
       };
 
@@ -447,12 +456,10 @@ export default function PDFViewer({
       activeRenderTasksRef.current.delete(pageNum);
 
       // Instantly paint the completed high-res frame to visible canvas with zero flicker
-      canvas.width = Math.floor(viewport.width);
-      canvas.height = Math.floor(viewport.height);
+      canvas.width = scaledWidth;
+      canvas.height = scaledHeight;
       const ctx = canvas.getContext('2d', { alpha: false });
       if (ctx) {
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(offscreenCanvas, 0, 0);
       }
       renderedPagesRef.current.add(renderKey);
@@ -1292,7 +1299,7 @@ export default function PDFViewer({
                         width: `${displayWidth}px`,
                         height: `${displayHeight}px`,
                       }}
-                      className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0 transition-all duration-75"
+                      className="relative bg-white rounded-md shadow-[0_8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_12px_40px_rgba(0,0,0,0.5)] border border-black/10 dark:border-white/15 overflow-hidden flex-shrink-0"
                     >
                       {/* 1. High-DPI Razor-Sharp Canvas Layer */}
                       <canvas
