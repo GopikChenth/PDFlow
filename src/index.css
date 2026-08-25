@@ -60,33 +60,25 @@ html, body, #root {
   -webkit-user-select: text;
 }
 
-.textLayer * {
+.textLayer span,
+.textLayer br {
   color: transparent !important;
-  background-color: transparent !important;
-  border-color: transparent !important;
-  outline: none !important;
-  box-shadow: none !important;
   position: absolute;
   white-space: pre;
   cursor: text;
   transform-origin: 0% 0%;
-}
-
-.textLayer span,
-.textLayer br,
-.textLayer div {
-  color: transparent !important;
-  background: transparent !important;
+  box-shadow: none !important;
   border: none !important;
+  outline: none !important;
 }
 
 .textLayer ::selection {
-  background: rgba(59, 130, 246, 0.35) !important;
+  background: rgba(59, 130, 246, 0.4) !important;
   color: transparent !important;
 }
 
 .textLayer ::-moz-selection {
-  background: rgba(59, 130, 246, 0.35) !important;
+  background: rgba(59, 130, 246, 0.4) !important;
   color: transparent !important;
 }
 
