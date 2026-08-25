@@ -243,9 +243,9 @@ interface ViewerNavSidebarProps {
 
 export default function ViewerNavSidebar({
   isOpen,
-  onClose,
+  onClose: _onClose,
   activeTab,
-  onTabChange,
+  onTabChange: _onTabChange,
   docName: _docName,
   docSize: _docSize,
   pdfDoc,
@@ -350,58 +350,10 @@ export default function ViewerNavSidebar({
     );
   };
 
-  const navTabs: { id: NavSidebarTab; label: string; icon: React.FC<{ className?: string }>; count?: number }[] = [
-    { id: 'thumbnails', label: 'Pages', icon: Grid, count: totalPages },
-    { id: 'outline', label: 'Outline', icon: ListTree, count: outline.length },
-    { id: 'annotations', label: 'Comments', icon: MessageSquare, count: annotations.length },
-    { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark, count: bookmarks.length },
-    { id: 'attachments', label: 'Files', icon: Paperclip, count: attachments.length },
-    { id: 'search', label: 'Search', icon: Search, count: isMultiDocSearch ? multiDocResults.reduce((acc, r) => acc + r.matches.length, 0) : inDocMatches.length },
-  ];
-
   return (
     <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 flex-shrink-0 z-30 select-none">
       
-      {/* 1. Navigation Tab Strip Header */}
-      <div className="p-2 border-b border-border flex items-center justify-between gap-1 flex-shrink-0 bg-card/60 dark:bg-card/40">
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 flex-1">
-          {navTabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onTabChange(tab.id)}
-                title={tab.label}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all flex-shrink-0 ${
-                  isActive 
-                    ? 'bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-xs font-bold' 
-                    : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 hover:bg-card/50'
-                }`}
-              >
-                <Icon className="h-3.5 w-3.5" />
-                <span className="text-[11px] font-semibold">{tab.label}</span>
-                {typeof tab.count === 'number' && tab.count > 0 && (
-                  <span className="text-[9px] font-mono opacity-70 bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Quick Close / Collapse Button */}
-        <button
-          onClick={onClose}
-          title="Collapse Pages Sidebar"
-          className="h-7 w-7 rounded-lg hover:bg-card dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors flex-shrink-0"
-        >
-          <X className="h-3.5 w-3.5" />
-        </button>
-      </div>
-
-      {/* 2. Tab Content Area (Page Thumbnails, TOC, Comments, Bookmarks, Files, Search) */}
+      {/* Pages Content Area (Page Thumbnails, TOC, Comments, Bookmarks, Files, Search) */}
       <div className="flex-1 overflow-y-auto p-3 overscroll-contain">
         
         {/* TAB 1: THUMBNAILS (PAGES) */}
