@@ -148,14 +148,18 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
     <div
       ref={containerRef}
       onClick={() => onSelect(pageNum)}
-      className="group relative flex flex-col items-center gap-1.5 p-1 rounded-xl transition-all cursor-pointer select-none"
+      className={`group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer select-none ${
+        isCurrent
+          ? 'bg-blue-500/10 dark:bg-blue-500/15'
+          : 'hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'
+      }`}
     >
       {/* Paper Sheet Preview */}
       <div 
-        className={`w-full bg-white rounded-md border overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
+        className={`w-full max-w-[175px] bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
           isCurrent
-            ? 'border-accent shadow-[0_4px_16px_rgba(230,57,70,0.22)] ring-2 ring-accent ring-offset-2 dark:ring-offset-zinc-900'
-            : 'border-zinc-300/80 dark:border-zinc-700/80 shadow-[0_2px_8px_rgba(0,0,0,0.06)] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] group-hover:border-zinc-400 dark:group-hover:border-zinc-500'
+            ? 'ring-2 ring-blue-600 dark:ring-blue-500 shadow-md'
+            : 'border border-zinc-300 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
         }`}
         style={{ aspectRatio: `${aspectRatio}` }}
       >
@@ -175,10 +179,10 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
 
       {/* Clean Centered Page Number */}
       <span
-        className={`text-[11px] font-mono transition-colors ${
+        className={`text-xs transition-colors ${
           isCurrent 
-            ? 'text-accent font-bold' 
-            : 'text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-medium'
+            ? 'text-blue-600 dark:text-blue-400 font-semibold' 
+            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-normal'
         }`}
       >
         {pageNum}
