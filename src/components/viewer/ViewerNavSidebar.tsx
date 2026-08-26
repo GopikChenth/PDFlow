@@ -148,15 +148,15 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
     <div
       ref={containerRef}
       onClick={() => onSelect(pageNum)}
-      className={`group relative flex flex-col items-center gap-2 p-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
-        isCurrent
-          ? 'border-accent bg-accent/10 dark:bg-accent/15 ring-2 ring-accent shadow-md'
-          : 'border-border bg-card/90 dark:bg-card/70 hover:border-accent/50 hover:shadow-xs'
-      }`}
+      className="group relative flex flex-col items-center gap-1.5 p-1 rounded-xl transition-all cursor-pointer select-none"
     >
-      {/* Thumbnail Canvas Container */}
+      {/* Paper Sheet Preview */}
       <div 
-        className="w-full bg-white dark:bg-zinc-900 rounded-xl border border-border/70 overflow-hidden relative shadow-xs flex items-center justify-center min-h-[110px]"
+        className={`w-full bg-white rounded-md border overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
+          isCurrent
+            ? 'border-accent shadow-[0_4px_16px_rgba(230,57,70,0.22)] ring-2 ring-accent ring-offset-2 dark:ring-offset-zinc-900'
+            : 'border-zinc-300/80 dark:border-zinc-700/80 shadow-[0_2px_8px_rgba(0,0,0,0.06)] group-hover:shadow-[0_4px_12px_rgba(0,0,0,0.12)] group-hover:border-zinc-400 dark:group-hover:border-zinc-500'
+        }`}
         style={{ aspectRatio: `${aspectRatio}` }}
       >
         <canvas
@@ -166,29 +166,23 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
           }`}
         />
         {!rendered && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-surface/50">
-            <FileText className="h-6 w-6 opacity-40 animate-pulse" />
-            <span className="text-[11px] font-mono opacity-60">Page {pageNum}</span>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-zinc-50 dark:bg-zinc-800/40">
+            <FileText className="h-5 w-5 opacity-30 animate-pulse" />
+            <span className="text-[10px] font-mono opacity-50">{pageNum}</span>
           </div>
         )}
       </div>
 
-      {/* Page Number Badge */}
-      <div className="flex items-center justify-between w-full px-1.5 pt-0.5">
-        <span
-          className={`text-xs font-mono font-bold transition-colors ${
-            isCurrent ? 'text-accent' : 'text-zinc-500 group-hover:text-zinc-800 dark:group-hover:text-zinc-200'
-          }`}
-        >
-          Page {pageNum}
-        </span>
-        {isCurrent && (
-          <span className="flex items-center gap-1 text-[10px] font-mono text-accent font-semibold bg-accent/10 dark:bg-accent/20 px-1.5 py-0.5 rounded-md border border-accent/30">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-            Active
-          </span>
-        )}
-      </div>
+      {/* Clean Centered Page Number */}
+      <span
+        className={`text-[11px] font-mono transition-colors ${
+          isCurrent 
+            ? 'text-accent font-bold' 
+            : 'text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-medium'
+        }`}
+      >
+        {pageNum}
+      </span>
     </div>
   );
 };
@@ -356,48 +350,45 @@ export default function ViewerNavSidebar({
   return (
     <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 flex-shrink-0 z-30 select-none">
       
-      {/* Pages Content Area (Page Thumbnails, TOC, Comments, Bookmarks, Files, Search) */}
+      {/* 1. Sleek Fixed Header Bar */}
+      <div className="px-3.5 py-2.5 border-b border-border/70 flex items-center justify-between bg-card/40 dark:bg-card/20 flex-shrink-0">
+        <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
+          Pages <span className="text-zinc-400 font-mono text-[11px] font-normal">({totalPages})</span>
+        </span>
+        <div className="flex items-center gap-0.5 bg-card/90 dark:bg-zinc-800/80 border border-border/80 rounded-lg p-0.5 shadow-2xs">
+          <button
+            onClick={() => setThumbnailColumns('1')}
+            title="Single Column View (1 per row)"
+            className={`p-1 rounded-md transition-colors ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+          >
+            <Columns className="h-3.5 w-3.5" />
+          </button>
+          <button
+            onClick={() => setThumbnailColumns('2')}
+            title="2-Column Grid View"
+            className={`p-1 rounded-md transition-colors ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+          >
+            <Grid className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* 2. Scrollable Thumbnails Content Area */}
       <div className="flex-1 overflow-y-auto p-3 overscroll-contain">
         
         {/* TAB 1: THUMBNAILS (PAGES) */}
         {activeTab === 'thumbnails' && (
-          <div className="flex flex-col gap-2.5">
-            
-            {/* View Mode Toggle Header */}
-            <div className="flex items-center justify-between px-1 text-[11px] font-mono text-zinc-400">
-              <span>{totalPages} Total Pages</span>
-              <div className="flex items-center gap-1 bg-card border border-border/80 rounded-lg p-0.5">
-                <button
-                  onClick={() => setThumbnailColumns('1')}
-                  title="Single Column View"
-                  className={`p-1 rounded ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-                >
-                  <Columns className="h-3 w-3" />
-                </button>
-                <button
-                  onClick={() => setThumbnailColumns('2')}
-                  title="2-Column Grid View"
-                  className={`p-1 rounded ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-                >
-                  <Grid className="h-3 w-3" />
-                </button>
-              </div>
-            </div>
-
-            {/* Thumbnails Grid / List */}
-            <div className={`grid gap-2.5 ${thumbnailColumns === '2' ? 'grid-cols-2' : 'grid-cols-1'}`}>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                <ThumbnailCard
-                  key={pageNum}
-                  pageNum={pageNum}
-                  isCurrent={pageNum === currentPage}
-                  pdfDoc={pdfDoc}
-                  rotation={rotation}
-                  onSelect={onPageSelect}
-                />
-              ))}
-            </div>
-
+          <div className={`grid gap-3.5 ${thumbnailColumns === '2' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+              <ThumbnailCard
+                key={pageNum}
+                pageNum={pageNum}
+                isCurrent={pageNum === currentPage}
+                pdfDoc={pdfDoc}
+                rotation={rotation}
+                onSelect={onPageSelect}
+              />
+            ))}
           </div>
         )}
 
