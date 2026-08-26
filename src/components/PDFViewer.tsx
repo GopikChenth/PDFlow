@@ -472,6 +472,7 @@ export default function PDFViewer({
         textContainer.style.width = `${Math.floor(textViewport.width)}px`;
         textContainer.style.height = `${Math.floor(textViewport.height)}px`;
         textContainer.style.setProperty('--scale-factor', `${currentScale}`);
+        textContainer.style.setProperty('--total-scale-factor', `${currentScale}`);
 
         const textContent = await page.getTextContent();
         const textLayer = new pdfjsLib.TextLayer({
