@@ -92,8 +92,8 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               const currentAspect = unscaledVp.width / unscaledVp.height;
               setAspectRatio(currentAspect);
 
-              const pixelRatio = Math.max(window.devicePixelRatio || 1, 2);
-              const targetWidth = 300 * pixelRatio;
+              const pixelRatio = window.devicePixelRatio || 1;
+              const targetWidth = Math.round(180 * pixelRatio);
               const scale = targetWidth / unscaledVp.width;
               const viewport = page.getViewport({ scale, rotation });
 
@@ -101,12 +101,10 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               canvas.width = Math.floor(viewport.width);
               canvas.height = Math.floor(viewport.height);
               canvas.style.width = '100%';
-              canvas.style.height = 'auto';
+              canvas.style.height = '100%';
 
               const ctx = canvas.getContext('2d', { alpha: false });
               if (!ctx) return;
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
 
               renderTask = page.render({
                 canvasContext: ctx,
@@ -148,24 +146,20 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
     <div
       ref={containerRef}
       onClick={() => onSelect(pageNum)}
-      className={`group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer select-none ${
-        isCurrent
-          ? 'bg-blue-500/10 dark:bg-blue-500/15'
-          : 'hover:bg-zinc-200/50 dark:hover:bg-zinc-800/50'
-      }`}
+      className="group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer select-none"
     >
       {/* Paper Sheet Preview */}
       <div 
-        className={`w-full max-w-[175px] bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
+        className={`w-full max-w-[160px] bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
           isCurrent
             ? 'ring-2 ring-blue-600 dark:ring-blue-500 shadow-md'
-            : 'border border-zinc-300 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
+            : 'border border-zinc-200 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
         }`}
         style={{ aspectRatio: `${aspectRatio}` }}
       >
         <canvas
           ref={canvasRef}
-          className={`w-full h-auto object-contain transition-opacity duration-200 ${
+          className={`w-full h-full object-contain transition-opacity duration-200 ${
             rendered ? 'opacity-100' : 'opacity-0'
           }`}
         />
@@ -179,10 +173,10 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
 
       {/* Clean Centered Page Number */}
       <span
-        className={`text-xs transition-colors ${
+        className={`text-[11px] transition-colors font-medium ${
           isCurrent 
-            ? 'text-blue-600 dark:text-blue-400 font-semibold' 
-            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100 font-normal'
+            ? 'text-blue-600 dark:text-blue-400 font-bold' 
+            : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'
         }`}
       >
         {pageNum}
