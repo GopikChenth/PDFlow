@@ -1254,7 +1254,7 @@ export default function PDFViewer({
           <div className="absolute top-3 left-3 z-30">
             <button
               onClick={() => setIsNavSidebarOpen(true)}
-              title="Expand Pages Sidebar (Ctrl+B)"
+              title="Show Sidebar (Ctrl+B)"
               className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer select-none"
             >
               <PanelLeftOpen className="h-3.5 w-3.5 text-accent" />

@@ -457,12 +457,12 @@ export default function ViewerNavSidebar({
             </button>
           </div>
 
-          {/* Shrink / Collapse Sidebar Button */}
+          {/* Hide Sidebar Button */}
           {onClose && (
             <button
               onClick={onClose}
-              title="Shrink Sidebar (Ctrl+B)"
-              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs"
+              title="Hide Sidebar (Ctrl+B)"
+              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer"
             >
               <PanelLeftClose className="h-3.5 w-3.5" />
             </button>
