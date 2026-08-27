@@ -22,7 +22,8 @@ import {
   Sun,
   Moon,
   Home,
-  Columns
+  Columns,
+  PanelLeftClose
 } from 'lucide-react';
 import { 
   NavSidebarTab, 
@@ -269,7 +270,7 @@ interface ViewerNavSidebarProps {
 
 export default function ViewerNavSidebar({
   isOpen,
-  onClose: _onClose,
+  onClose,
   activeTab,
   onTabChange: _onTabChange,
   docName: _docName,
@@ -438,21 +439,34 @@ export default function ViewerNavSidebar({
         <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
           Pages <span className="text-zinc-400 font-mono text-[11px] font-normal">({totalPages})</span>
         </span>
-        <div className="flex items-center gap-0.5 bg-card/90 dark:bg-zinc-800/80 border border-border/80 rounded-lg p-0.5 shadow-2xs">
-          <button
-            onClick={() => setThumbnailColumns('1')}
-            title="Single Column View (1 per row)"
-            className={`p-1 rounded-md transition-colors ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-          >
-            <Columns className="h-3.5 w-3.5" />
-          </button>
-          <button
-            onClick={() => setThumbnailColumns('2')}
-            title="2-Column Grid View"
-            className={`p-1 rounded-md transition-colors ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
-          >
-            <Grid className="h-3.5 w-3.5" />
-          </button>
+        <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-0.5 bg-card/90 dark:bg-zinc-800/80 border border-border/80 rounded-lg p-0.5 shadow-2xs">
+            <button
+              onClick={() => setThumbnailColumns('1')}
+              title="Single Column View (1 per row)"
+              className={`p-1 rounded-md transition-colors ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+            >
+              <Columns className="h-3.5 w-3.5" />
+            </button>
+            <button
+              onClick={() => setThumbnailColumns('2')}
+              title="2-Column Grid View"
+              className={`p-1 rounded-md transition-colors ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+            >
+              <Grid className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Shrink / Collapse Sidebar Button */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              title="Shrink Sidebar (Ctrl+B)"
+              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs"
+            >
+              <PanelLeftClose className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

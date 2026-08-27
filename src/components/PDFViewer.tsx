@@ -14,7 +14,8 @@ import {
   BookOpen,
   Columns,
   Eye,
-  ChevronDown
+  ChevronDown,
+  PanelLeftOpen
 } from 'lucide-react';
 import { 
   LoadedPDF, 
@@ -1202,52 +1203,65 @@ export default function PDFViewer({
       <div className="flex-1 flex overflow-hidden relative">
         
         {/* Left Navigation Sidebar Drawer */}
-        <ViewerNavSidebar
-          isOpen={isNavSidebarOpen}
-          onClose={() => setIsNavSidebarOpen(false)}
-          activeTab={navSidebarTab}
-          onTabChange={setNavSidebarTab}
-          docName={doc.name}
-          docSize={doc.size}
-          pdfDoc={pdfDoc}
-          rotation={rotation}
-          totalPages={pages.length}
-          currentPage={currentPage}
-          onPageSelect={scrollToPage}
-          outline={outline}
-          onNavigateToDest={handleNavigateToDest}
-          bookmarks={bookmarks}
-          onAddBookmark={handleAddBookmark}
-          onRemoveBookmark={handleRemoveBookmark}
-          annotations={annotations}
-          onSelectAnnotation={(ann) => {
-            scrollToPage(ann.pageNum);
-            if (ann.type === 'sticky-note' || ann.type === 'voice-note') {
-              setActiveStickyModalAnnId(ann.id);
-            }
-          }}
-          onDeleteAnnotation={handleDeleteAnnotation}
-          attachments={attachments}
-          onDownloadAttachment={handleDownloadAttachment}
-          searchQuery={searchQuery}
-          inDocMatches={inDocMatches}
-          multiDocResults={multiDocResults}
-          isMultiDocSearch={isMultiDocSearch}
-          onSelectMatch={(pNum, _, docId) => {
-            if (docId && docId !== doc.id && onSelectDoc) {
-              const targetDoc = allDocs.find((d) => d.id === docId);
-              if (targetDoc) onSelectDoc(targetDoc);
-            } else {
-              scrollToPage(pNum);
-            }
-          }}
-          onBackToTools={onBackToTools}
-          onOpenDocument={onOpenDocument}
-          onOpenOrganizer={onOpenOrganizer}
-          darkMode={darkMode}
-          onToggleDarkMode={onToggleDarkMode}
-          onReturnToCover={onReturnToCover}
-        />
+        {isNavSidebarOpen ? (
+          <ViewerNavSidebar
+            isOpen={isNavSidebarOpen}
+            onClose={() => setIsNavSidebarOpen(false)}
+            activeTab={navSidebarTab}
+            onTabChange={setNavSidebarTab}
+            docName={doc.name}
+            docSize={doc.size}
+            pdfDoc={pdfDoc}
+            rotation={rotation}
+            totalPages={pages.length}
+            currentPage={currentPage}
+            onPageSelect={scrollToPage}
+            outline={outline}
+            onNavigateToDest={handleNavigateToDest}
+            bookmarks={bookmarks}
+            onAddBookmark={handleAddBookmark}
+            onRemoveBookmark={handleRemoveBookmark}
+            annotations={annotations}
+            onSelectAnnotation={(ann) => {
+              scrollToPage(ann.pageNum);
+              if (ann.type === 'sticky-note' || ann.type === 'voice-note') {
+                setActiveStickyModalAnnId(ann.id);
+              }
+            }}
+            onDeleteAnnotation={handleDeleteAnnotation}
+            attachments={attachments}
+            onDownloadAttachment={handleDownloadAttachment}
+            searchQuery={searchQuery}
+            inDocMatches={inDocMatches}
+            multiDocResults={multiDocResults}
+            isMultiDocSearch={isMultiDocSearch}
+            onSelectMatch={(pNum, _, docId) => {
+              if (docId && docId !== doc.id && onSelectDoc) {
+                const targetDoc = allDocs.find((d) => d.id === docId);
+                if (targetDoc) onSelectDoc(targetDoc);
+              } else {
+                scrollToPage(pNum);
+              }
+            }}
+            onBackToTools={onBackToTools}
+            onOpenDocument={onOpenDocument}
+            onOpenOrganizer={onOpenOrganizer}
+            darkMode={darkMode}
+            onToggleDarkMode={onToggleDarkMode}
+            onReturnToCover={onReturnToCover}
+          />
+        ) : (
+          <div className="absolute top-3 left-3 z-30">
+            <button
+              onClick={() => setIsNavSidebarOpen(true)}
+              title="Expand Pages Sidebar (Ctrl+B)"
+              className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer select-none"
+            >
+              <PanelLeftOpen className="h-3.5 w-3.5 text-accent" />
+              <span>Pages</span>
+            </button>
+          </div>
+        )}
 
         {/* 4. Multi-Mode Responsive Document Viewport */}
         <div 
