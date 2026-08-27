@@ -97,7 +97,28 @@ export default function PDFViewer({
   const [isReflowOpen, setIsReflowOpen] = useState<boolean>(false);
 
   // 3. Navigation Panes (Left Drawer)
-  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(true);
+  const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem('pdflow_sidebar_open');
+      return saved !== null ? saved === 'true' : true;
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleNavSidebar = useCallback((openState?: boolean | ((prev: boolean) => boolean)) => {
+    setIsNavSidebarOpen((prev) => {
+      const next = typeof openState === 'function' 
+        ? openState(prev) 
+        : typeof openState === 'boolean' 
+          ? openState 
+          : !prev;
+      try {
+        localStorage.setItem('pdflow_sidebar_open', String(next));
+      } catch {}
+      return next;
+    });
+  }, []);
   const [navSidebarTab, setNavSidebarTab] = useState<NavSidebarTab>('thumbnails');
   const [outline, setOutline] = useState<PDFOutlineNode[]>([]);
   const [attachments, setAttachments] = useState<PDFAttachment[]>([]);
@@ -844,7 +865,7 @@ export default function PDFViewer({
           setShowLayoutMenu(false);
           e.preventDefault();
         } else if (isNavSidebarOpen) {
-          setIsNavSidebarOpen(false);
+          toggleNavSidebar(false);
           e.preventDefault();
         } else if (activeAnnotationTool !== 'select') {
           setActiveAnnotationTool('select');
@@ -862,7 +883,7 @@ export default function PDFViewer({
         setIsSearchOpen((prev) => !prev);
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
-        setIsNavSidebarOpen((prev) => !prev);
+        toggleNavSidebar();
       } else if (e.key === 'v' || e.key === 'V') {
         if (!e.ctrlKey && !e.metaKey) setActiveAnnotationTool('select');
       } else if (e.key === 'h' || e.key === 'H') {
@@ -1206,7 +1227,7 @@ export default function PDFViewer({
         {isNavSidebarOpen ? (
           <ViewerNavSidebar
             isOpen={isNavSidebarOpen}
-            onClose={() => setIsNavSidebarOpen(false)}
+            onClose={() => toggleNavSidebar(false)}
             activeTab={navSidebarTab}
             onTabChange={setNavSidebarTab}
             docName={doc.name}
@@ -1253,7 +1274,7 @@ export default function PDFViewer({
         ) : (
           <div className="absolute top-3 left-3 z-30">
             <button
-              onClick={() => setIsNavSidebarOpen(true)}
+              onClick={() => toggleNavSidebar(true)}
               title="Show Sidebar (Ctrl+B)"
               className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer select-none"
             >
