@@ -39,6 +39,7 @@ interface ThumbnailCardProps {
   isCurrent: boolean;
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   rotation: number;
+  columns?: '1' | '2';
   onSelect: (pageNum: number) => void;
 }
 
@@ -47,12 +48,18 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
   isCurrent,
   pdfDoc,
   rotation,
+  columns = '1',
   onSelect,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [rendered, setRendered] = useState(false);
-  const [aspectRatio, setAspectRatio] = useState<number>(0.75); // Standard portrait
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
+
+  // Reset rendered flag on layout or rotation change to recalculate integer grid
+  useEffect(() => {
+    setRendered(false);
+  }, [columns, rotation]);
 
   // Auto-scroll the active thumbnail into view when current page changes (only if not already in view)
   useEffect(() => {
@@ -73,7 +80,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
     }
   }, [isCurrent]);
 
-  // Lazy render thumbnail canvas with IntersectionObserver
+  // Lazy render thumbnail canvas with native integer-pixel scale targets
   useEffect(() => {
     if (!pdfDoc || !canvasRef.current || !containerRef.current) return;
 
@@ -90,32 +97,39 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
 
               const unscaledVp = page.getViewport({ scale: 1.0, rotation });
               const currentAspect = unscaledVp.width / unscaledVp.height;
-              setAspectRatio(currentAspect);
 
-              const pixelRatio = Math.max(window.devicePixelRatio || 1, 1.5);
-              const targetWidth = Math.round(180 * pixelRatio);
-              const scale = targetWidth / unscaledVp.width;
+              // 1. Native Integer-Pixel Target Width & Height
+              const cssWidth = columns === '2' ? 105 : 150;
+              const cssHeight = Math.round(cssWidth / currentAspect);
+              setDimensions({ width: cssWidth, height: cssHeight });
+
+              const scale = cssWidth / unscaledVp.width;
               const viewport = page.getViewport({ scale, rotation });
 
+              const outputScale = window.devicePixelRatio || 1;
               const canvas = canvasRef.current;
-              canvas.width = Math.floor(viewport.width);
-              canvas.height = Math.floor(viewport.height);
-              canvas.style.width = '100%';
-              canvas.style.height = '100%';
+              
+              // 2. Exact Integer Canvas Buffer (Physical Device Pixels)
+              canvas.width = Math.round(viewport.width * outputScale);
+              canvas.height = Math.round(viewport.height * outputScale);
+
+              // 3. Exact Integer CSS Layout Size (1:1 with Screen Grid)
+              canvas.style.width = `${Math.round(viewport.width)}px`;
+              canvas.style.height = `${Math.round(viewport.height)}px`;
 
               const ctx = canvas.getContext('2d', { alpha: false });
               if (!ctx) return;
 
-              // 1. Fill solid crisp white paper backing
+              // 4. Solid Opaque Paper Backing
               ctx.fillStyle = '#ffffff';
               ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-              // 2. High-quality image smoothing for vector line downsampling
-              ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
+              // 5. Native OutputScale Matrix Transform (Autohinted Vector Rasterization)
+              const transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : undefined;
 
               renderTask = page.render({
                 canvasContext: ctx,
+                transform,
                 viewport,
                 canvas,
               });
@@ -148,7 +162,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
         try { renderTask.cancel(); } catch {}
       }
     };
-  }, [pdfDoc, pageNum, rotation, rendered]);
+  }, [pdfDoc, pageNum, rotation, rendered, columns]);
 
   return (
     <div
@@ -158,12 +172,15 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
     >
       {/* Paper Sheet Preview */}
       <div 
-        className={`w-full max-w-[160px] bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
+        className={`bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
           isCurrent
             ? 'ring-2 ring-blue-600 dark:ring-blue-500 shadow-md'
             : 'border border-zinc-200 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
         }`}
-        style={{ aspectRatio: `${aspectRatio}` }}
+        style={{
+          width: `${dimensions.width}px`,
+          height: `${dimensions.height}px`,
+        }}
       >
         <canvas
           ref={canvasRef}
@@ -393,6 +410,7 @@ export default function ViewerNavSidebar({
                 isCurrent={pageNum === currentPage}
                 pdfDoc={pdfDoc}
                 rotation={rotation}
+                columns={thumbnailColumns}
                 onSelect={onPageSelect}
               />
             ))}
