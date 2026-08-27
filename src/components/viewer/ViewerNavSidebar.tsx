@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { 
   Grid, 
@@ -40,6 +40,7 @@ interface ThumbnailCardProps {
   pdfDoc: pdfjsLib.PDFDocumentProxy | null;
   rotation: number;
   columns?: '1' | '2';
+  sidebarWidth?: number;
   onSelect: (pageNum: number) => void;
 }
 
@@ -49,6 +50,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
   pdfDoc,
   rotation,
   columns = '1',
+  sidebarWidth = 280,
   onSelect,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -56,10 +58,10 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
   const [rendered, setRendered] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
 
-  // Reset rendered flag on layout or rotation change to recalculate integer grid
+  // Reset rendered flag on layout, rotation, or sidebar width change
   useEffect(() => {
     setRendered(false);
-  }, [columns, rotation]);
+  }, [columns, rotation, sidebarWidth]);
 
   // Auto-scroll the active thumbnail into view when current page changes (only if not already in view)
   useEffect(() => {
@@ -98,8 +100,11 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               const unscaledVp = page.getViewport({ scale: 1.0, rotation });
               const currentAspect = unscaledVp.width / unscaledVp.height;
 
-              // 1. Native Integer-Pixel Target Width & Height
-              const cssWidth = columns === '2' ? 105 : 150;
+              // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
+              const availableWidth = sidebarWidth - 44;
+              const cssWidth = columns === '2' 
+                ? Math.max(85, Math.floor((availableWidth - 14) / 2)) 
+                : Math.min(Math.max(140, availableWidth - 16), 340);
               const cssHeight = Math.round(cssWidth / currentAspect);
               setDimensions({ width: cssWidth, height: cssHeight });
 
@@ -371,8 +376,62 @@ export default function ViewerNavSidebar({
     );
   };
 
+  // Resizable sidebar width state (persisted in localStorage)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('pdflow_sidebar_width');
+    return saved ? Math.max(200, Math.min(650, parseInt(saved, 10))) : 280;
+  });
+  const [isResizing, setIsResizing] = useState(false);
+
+  const startResizing = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const newWidth = Math.max(200, Math.min(650, e.clientX));
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      localStorage.setItem('pdflow_sidebar_width', sidebarWidth.toString());
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizing, sidebarWidth]);
+
   return (
-    <aside className="w-64 sm:w-72 h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 flex-shrink-0 z-30 select-none">
+    <aside 
+      style={{ width: `${sidebarWidth}px` }}
+      className="h-full flex flex-col justify-between border-r border-border bg-surface/80 dark:bg-surface/50 flex-shrink-0 z-30 select-none relative group/sidebar"
+    >
+      {/* Interactive Drag Handle to Expand / Resize Sidebar */}
+      <div
+        onMouseDown={startResizing}
+        onDoubleClick={() => setSidebarWidth(280)}
+        title="Drag to resize sidebar • Double-click to reset"
+        className={`absolute top-0 -right-1.5 w-3 h-full cursor-col-resize z-40 transition-colors flex items-center justify-center select-none ${
+          isResizing ? 'bg-blue-500/30' : 'hover:bg-blue-500/20'
+        }`}
+      >
+        <div className={`w-[2px] h-10 rounded-full transition-colors ${
+          isResizing ? 'bg-blue-600 dark:bg-blue-400' : 'bg-transparent group-hover/sidebar:bg-zinc-400/50'
+        }`} />
+      </div>
       
       {/* 1. Sleek Fixed Header Bar */}
       <div className="px-3.5 py-2.5 border-b border-border/70 flex items-center justify-between bg-card/40 dark:bg-card/20 flex-shrink-0">
@@ -411,6 +470,7 @@ export default function ViewerNavSidebar({
                 pdfDoc={pdfDoc}
                 rotation={rotation}
                 columns={thumbnailColumns}
+                sidebarWidth={sidebarWidth}
                 onSelect={onPageSelect}
               />
             ))}
