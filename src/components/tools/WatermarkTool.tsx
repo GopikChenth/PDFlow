@@ -28,8 +28,12 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
   const [fontSize, setFontSize] = useState<number>(50);
   const [colorHex, setColorHex] = useState<string>('#e11d48'); // rose-600
   const [applying, setApplying] = useState<boolean>(false);
+  const [pageLoading, setPageLoading] = useState<boolean>(false);
+  const [pageScale, setPageScale] = useState<number>(1.0);
+  const [canvasSize, setCanvasSize] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const baseCanvasRef = useRef<HTMLCanvasElement>(null);
+  const watermarkCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const formatSize = (bytes: number): string => {
@@ -56,56 +60,88 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
     }
   };
 
-  // Render Page 1 preview with live Watermark Canvas Overlay
+  // 1. Render Base PDF Page 1 ONCE when document is loaded
   useEffect(() => {
-    if (!doc || !canvasRef.current) return;
+    if (!doc || !baseCanvasRef.current) return;
     let isCancelled = false;
+    setPageLoading(true);
 
-    const renderPreview = async () => {
+    const renderBasePage = async () => {
       try {
         const loadingTask = pdfjsLib.getDocument(doc.blobUrl);
         const pdf = await loadingTask.promise;
         const page = await pdf.getPage(1);
         const pixelRatio = window.devicePixelRatio || 1;
-        const targetWidth = 320 * pixelRatio;
+        const targetWidth = 360 * pixelRatio;
         const baseVp = page.getViewport({ scale: 1.0 });
-        const scale = targetWidth / baseVp.width;
-        const viewport = page.getViewport({ scale });
+        const calculatedScale = targetWidth / baseVp.width;
+        const viewport = page.getViewport({ scale: calculatedScale });
 
-        const canvas = canvasRef.current;
-        if (!canvas || isCancelled) return;
+        const baseCanvas = baseCanvasRef.current;
+        if (!baseCanvas || isCancelled) return;
 
-        canvas.width = viewport.width;
-        canvas.height = viewport.height;
+        baseCanvas.width = viewport.width;
+        baseCanvas.height = viewport.height;
 
-        const ctx = canvas.getContext('2d');
+        const ctx = baseCanvas.getContext('2d');
         if (!ctx) return;
 
-        await page.render({ canvasContext: ctx, viewport, canvas }).promise;
+        // Clean opaque white backing
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, viewport.width, viewport.height);
 
-        if (isCancelled || !watermarkText.trim()) return;
+        await page.render({ canvasContext: ctx, viewport, canvas: baseCanvas }).promise;
 
-        // Draw live watermark text on preview
-        ctx.save();
-        ctx.translate(viewport.width / 2, viewport.height / 2);
-        ctx.rotate((rotationAngle * Math.PI) / 180);
-        ctx.font = `bold ${(fontSize * scale * 0.9)}px sans-serif`;
-        ctx.fillStyle = colorHex;
-        ctx.globalAlpha = opacity;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(watermarkText, 0, 0);
-        ctx.restore();
+        if (!isCancelled) {
+          setPageScale(calculatedScale);
+          setCanvasSize({ width: viewport.width, height: viewport.height });
+          setPageLoading(false);
+        }
       } catch (err) {
-        console.error('Error rendering watermark preview:', err);
+        console.error('Error rendering base PDF page preview:', err);
+        if (!isCancelled) setPageLoading(false);
       }
     };
 
-    renderPreview();
+    renderBasePage();
     return () => {
       isCancelled = true;
     };
-  }, [doc, watermarkText, opacity, rotationAngle, fontSize, colorHex]);
+  }, [doc]);
+
+  // 2. Instant Real-Time Watermark Drawing (Zero PDF re-render latency)
+  const drawWatermark = useCallback(() => {
+    const canvas = watermarkCanvasRef.current;
+    if (!canvas || canvasSize.width === 0 || canvasSize.height === 0) return;
+
+    if (canvas.width !== canvasSize.width || canvas.height !== canvasSize.height) {
+      canvas.width = canvasSize.width;
+      canvas.height = canvasSize.height;
+    }
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!watermarkText.trim()) return;
+
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((rotationAngle * Math.PI) / 180);
+    ctx.font = `bold ${(fontSize * pageScale * 0.9)}px sans-serif`;
+    ctx.fillStyle = colorHex;
+    ctx.globalAlpha = opacity;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(watermarkText, 0, 0);
+    ctx.restore();
+  }, [canvasSize, watermarkText, rotationAngle, fontSize, pageScale, colorHex, opacity]);
+
+  useEffect(() => {
+    const animId = requestAnimationFrame(drawWatermark);
+    return () => cancelAnimationFrame(animId);
+  }, [drawWatermark]);
 
   // Convert hex color to rgb numbers for pdf-lib
   const hexToRgb = (hex: string) => {
@@ -264,15 +300,17 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                     <span>Opacity</span>
-                    <span className="font-mono text-zinc-400">{Math.round(opacity * 100)}%</span>
+                    <span className="font-mono text-zinc-400 tabular-nums">{Math.round(opacity * 100)}%</span>
                   </div>
                   <input
                     type="range"
                     min="5"
-                    max="90"
+                    max="95"
+                    step="1"
                     value={Math.round(opacity * 100)}
                     onChange={(e) => setOpacity(parseInt(e.target.value, 10) / 100)}
-                    className="w-full h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-zinc-100"
+                    aria-label="Watermark Opacity"
+                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-700/80 rounded-full appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
                   />
                 </div>
 
@@ -280,16 +318,17 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                     <span>Rotation Angle</span>
-                    <span className="font-mono text-zinc-400">{rotationAngle}°</span>
+                    <span className="font-mono text-zinc-400 tabular-nums">{rotationAngle}°</span>
                   </div>
                   <input
                     type="range"
                     min="-90"
                     max="90"
-                    step="5"
+                    step="1"
                     value={rotationAngle}
                     onChange={(e) => setRotationAngle(parseInt(e.target.value, 10))}
-                    className="w-full h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-zinc-100"
+                    aria-label="Watermark Rotation Angle"
+                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-700/80 rounded-full appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
                   />
                 </div>
 
@@ -297,16 +336,17 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center justify-between text-xs font-semibold text-zinc-800 dark:text-zinc-200">
                     <span>Font Size</span>
-                    <span className="font-mono text-zinc-400">{fontSize} pt</span>
+                    <span className="font-mono text-zinc-400 tabular-nums">{fontSize} pt</span>
                   </div>
                   <input
                     type="range"
-                    min="20"
-                    max="100"
-                    step="2"
+                    min="16"
+                    max="120"
+                    step="1"
                     value={fontSize}
                     onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-                    className="w-full h-1.5 bg-zinc-300 dark:bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-zinc-900 dark:accent-zinc-100"
+                    aria-label="Watermark Font Size"
+                    className="w-full h-2 bg-zinc-200 dark:bg-zinc-700/80 rounded-full appearance-none cursor-pointer accent-blue-600 dark:accent-blue-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors"
                   />
                 </div>
 
@@ -375,8 +415,34 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
                 <span className="text-[10px] font-mono text-zinc-400">Real-Time Overlay</span>
               </div>
 
-              <div className="w-full aspect-[1/1.3] rounded-2xl bg-white dark:bg-zinc-900 border border-border shadow-xl p-3 flex items-center justify-center overflow-hidden relative">
-                <canvas ref={canvasRef} className="max-w-full max-h-full block object-contain shadow-sm rounded-lg" />
+              <div className="w-full aspect-[1/1.3] rounded-2xl bg-zinc-100 dark:bg-zinc-950/60 border border-border shadow-inner p-4 flex items-center justify-center overflow-hidden relative">
+                {pageLoading && (
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs">
+                    <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                    <span className="text-xs font-medium text-zinc-500">Loading Preview…</span>
+                  </div>
+                )}
+
+                <div 
+                  className="relative max-w-full max-h-full rounded-sm overflow-hidden shadow-lg border border-zinc-200 dark:border-zinc-800 bg-white"
+                  style={{
+                    width: canvasSize.width ? `${canvasSize.width / (window.devicePixelRatio || 1)}px` : undefined,
+                    height: canvasSize.height ? `${canvasSize.height / (window.devicePixelRatio || 1)}px` : undefined,
+                  }}
+                >
+                  {/* Layer 1: Base PDF Page */}
+                  <canvas 
+                    ref={baseCanvasRef} 
+                    className="w-full h-full block object-contain" 
+                    style={{ imageRendering: '-webkit-optimize-contrast' }}
+                  />
+
+                  {/* Layer 2: Live Real-Time Watermark Overlay */}
+                  <canvas 
+                    ref={watermarkCanvasRef} 
+                    className="absolute inset-0 w-full h-full pointer-events-none" 
+                  />
+                </div>
               </div>
             </div>
 
