@@ -1012,7 +1012,7 @@ export default function PDFViewer({
       }`}
     >
       {/* 1. Integrated Full-Featured Clean App Toolbar */}
-      <header className={`h-12 border-b border-border bg-surface/75 dark:bg-surface/55 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
+      <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
         focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
       }`}>
         
@@ -1193,7 +1193,7 @@ export default function PDFViewer({
             <button
               onClick={onClose}
               title="Close Document"
-              className="h-8 px-2.5 rounded-lg bg-surface dark:bg-zinc-800 hover:bg-rose-500 hover:text-white dark:hover:bg-rose-600 flex items-center gap-1 text-xs font-semibold transition-all border border-border"
+              className="h-8 px-2.5 rounded-lg bg-surface dark:bg-card hover:bg-rose-500 hover:text-white dark:hover:bg-rose-600 flex items-center gap-1 text-xs font-semibold transition-all border border-border"
             >
               <X className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Close</span>
@@ -1282,7 +1282,7 @@ export default function PDFViewer({
               onClick={() => toggleNavSidebar(true)}
               title="Show Sidebar (Ctrl+B)"
               aria-label="Show Pages Sidebar"
-              className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer select-none"
+              className="h-8 px-2.5 rounded-lg border border-border bg-card/95 dark:bg-card/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer select-none"
             >
               <PanelLeftOpen className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
               <span>Pages</span>

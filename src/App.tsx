@@ -10,17 +10,28 @@ export default function App() {
   const [activeDocName, setActiveDocName] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
+      const saved = localStorage.getItem('pdflow_dark_mode');
+      if (saved !== null) {
+        return saved === 'true';
+      }
+      return document.documentElement.classList.contains('dark') ||
+        window.matchMedia('(prefers-color-scheme: dark)').matches;
     }
     return false;
   });
 
-  // Sync dark class on html root
+  // Sync dark class on html root & persist in localStorage
   useEffect(() => {
     if (darkMode) {
       document.documentElement.classList.add('dark');
+      try {
+        localStorage.setItem('pdflow_dark_mode', 'true');
+      } catch {}
     } else {
       document.documentElement.classList.remove('dark');
+      try {
+        localStorage.setItem('pdflow_dark_mode', 'false');
+      } catch {}
     }
   }, [darkMode]);
 

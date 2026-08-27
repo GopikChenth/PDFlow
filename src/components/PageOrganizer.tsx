@@ -400,7 +400,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     >
       
       {/* 1. Control & Action Toolbar */}
-      <div className="h-14 border-b border-border bg-surface/80 dark:bg-surface/50 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0 z-10">
+      <div className="h-14 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0 z-10">
         
         {/* Left: Title & Selection Stats */}
         <div className="flex items-center gap-3 min-w-0">
@@ -426,7 +426,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
             <button
               onClick={handleDeselectAll}
               title="Deselect All"
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-surface transition-colors"
             >
               <CheckSquare className="h-3.5 w-3.5 text-accent" />
               <span className="text-[11px] hidden sm:inline">Deselect</span>
@@ -435,7 +435,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
             <button
               onClick={handleSelectAll}
               title="Select All Pages"
-              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-surface transition-colors"
             >
               <Square className="h-3.5 w-3.5 text-zinc-500" />
               <span className="text-[11px] hidden sm:inline">Select All</span>
@@ -448,7 +448,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
           <button
             onClick={handleRotateSelected}
             title={selectedCount > 0 ? "Rotate Selected Pages" : "Rotate All Pages"}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium hover:bg-card dark:hover:bg-surface transition-colors"
           >
             <RotateCw className="h-3.5 w-3.5 text-zinc-600 dark:text-zinc-300" />
             <span className="text-[11px] hidden md:inline">Rotate 90°</span>
@@ -484,7 +484,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
           <button
             onClick={handleReset}
             title="Reset to Original Layout"
-            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-zinc-500 hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium text-zinc-500 hover:bg-card dark:hover:bg-surface transition-colors"
           >
             <Undo2 className="h-3.5 w-3.5" />
             <span className="text-[11px] hidden lg:inline">Reset</span>

@@ -127,7 +127,7 @@ export default function FloatingAnnotationToolbar({
   const isMeasureActive = MEASURE_TOOLS.has(activeTool);
 
   return (
-    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] overflow-x-auto no-scrollbar flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-2xl !bg-white dark:!bg-zinc-900 border border-zinc-300 dark:border-zinc-700 shadow-2xl text-zinc-800 dark:text-zinc-200 select-none animate-in fade-in slide-in-from-bottom-3 duration-200 ${
+    <div className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[96vw] overflow-x-auto no-scrollbar flex items-center gap-1 sm:gap-1.5 px-3 py-1.5 rounded-2xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl text-zinc-800 dark:text-zinc-200 select-none animate-in fade-in slide-in-from-bottom-3 duration-200 ${
       focusMode ? 'opacity-30 hover:opacity-100' : 'opacity-100'
     }`}>
       
@@ -141,13 +141,13 @@ export default function FloatingAnnotationToolbar({
         className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'select' 
             ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 shadow-xs font-bold' 
-            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+            : 'hover:bg-surface dark:hover:bg-surface text-zinc-600 dark:text-zinc-400'
         }`}
       >
         <MousePointer className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 flex-shrink-0" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 2. Text Markup Group Dropdown */}
       <div className="relative flex-shrink-0">
@@ -163,7 +163,7 @@ export default function FloatingAnnotationToolbar({
           className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isTextMarkupActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
-              : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
+              : 'border-border hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'
           }`}
         >
           {activeTool === 'highlight' ? <Highlighter className="h-3.5 w-3.5" /> :
@@ -181,40 +181,40 @@ export default function FloatingAnnotationToolbar({
         {showMarkupMenu && (
           <div 
             onClick={() => setShowMarkupMenu(false)}
-            className="absolute bottom-11 left-0 z-50 w-48 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
+            className="absolute bottom-11 left-0 z-50 w-48 p-1.5 rounded-xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
           >
             <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Text Markup</div>
             <button
               onClick={() => onSelectTool('highlight')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'highlight' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'highlight' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Highlighter className="h-3.5 w-3.5 text-amber-500" />
               <span>Highlight</span>
             </button>
             <button
               onClick={() => onSelectTool('underline')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'underline' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'underline' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <UnderlineIcon className="h-3.5 w-3.5 text-emerald-500" />
               <span>Underline</span>
             </button>
             <button
               onClick={() => onSelectTool('strikeout')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'strikeout' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'strikeout' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Strikethrough className="h-3.5 w-3.5 text-rose-500" />
               <span>Strikethrough</span>
             </button>
             <button
               onClick={() => onSelectTool('squiggly')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'squiggly' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'squiggly' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Spline className="h-3.5 w-3.5 text-purple-500" />
               <span>Squiggly Underline</span>
             </button>
             <button
               onClick={() => onSelectTool('callout')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'callout' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'callout' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <MessageSquareQuote className="h-3.5 w-3.5 text-sky-500" />
               <span>Text Callout</span>
@@ -237,7 +237,7 @@ export default function FloatingAnnotationToolbar({
           className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isShapeActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
-              : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
+              : 'border-border hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'
           }`}
         >
           {activeTool === 'pen' ? <PenTool className="h-3.5 w-3.5" /> :
@@ -255,49 +255,49 @@ export default function FloatingAnnotationToolbar({
         {showShapesMenu && (
           <div 
             onClick={() => setShowShapesMenu(false)}
-            className="absolute bottom-11 left-0 z-50 w-48 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
+            className="absolute bottom-11 left-0 z-50 w-48 p-1.5 rounded-xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
           >
             <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Drawing & Shapes</div>
             <button
               onClick={() => onSelectTool('pen')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'pen' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'pen' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <PenTool className="h-3.5 w-3.5" />
               <span>Freehand Pen</span>
             </button>
             <button
               onClick={() => onSelectTool('rectangle')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'rectangle' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'rectangle' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Square className="h-3.5 w-3.5" />
               <span>Rectangle</span>
             </button>
             <button
               onClick={() => onSelectTool('arrow')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'arrow' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'arrow' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <ArrowUpRight className="h-3.5 w-3.5" />
-              <span>Arrow</span>
+              <span>Arrow Pointer</span>
             </button>
             <button
               onClick={() => onSelectTool('line')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'line' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'line' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Minus className="h-3.5 w-3.5" />
-              <span>Line</span>
+              <span>Straight Line</span>
             </button>
             <button
               onClick={() => onSelectTool('polygon')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'polygon' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'polygon' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Hexagon className="h-3.5 w-3.5" />
-              <span>Polygon</span>
+              <span>Polygon Area</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* 4. Measurement Tools Dropdown */}
+      {/* 4. Measuring Tools Group Dropdown */}
       <div className="relative flex-shrink-0">
         <button
           onClick={() => {
@@ -311,7 +311,7 @@ export default function FloatingAnnotationToolbar({
           className={`h-8 px-2.5 rounded-xl border flex items-center gap-1 text-xs font-semibold whitespace-nowrap transition-all ${
             isMeasureActive 
               ? 'bg-accent text-white border-accent shadow-xs' 
-              : 'border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'
+              : 'border-border hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'
           }`}
         >
           {activeTool === 'measure-distance' ? <Ruler className="h-3.5 w-3.5" /> : <DraftingCompass className="h-3.5 w-3.5" />}
@@ -322,12 +322,12 @@ export default function FloatingAnnotationToolbar({
         {showMeasureMenu && (
           <div 
             onClick={() => setShowMeasureMenu(false)}
-            className="absolute bottom-11 left-0 z-50 w-52 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
+            className="absolute bottom-11 left-0 z-50 w-52 p-1.5 rounded-xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
           >
             <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Measuring Tools</div>
             <button
               onClick={() => onSelectTool('measure-distance')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'measure-distance' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'measure-distance' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <Ruler className="h-3.5 w-3.5 text-accent" />
               <div>
@@ -337,7 +337,7 @@ export default function FloatingAnnotationToolbar({
             </button>
             <button
               onClick={() => onSelectTool('measure-area')}
-              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'measure-area' ? 'bg-accent text-white font-bold' : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-800 dark:text-zinc-200'}`}
+              className={`w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left transition-colors ${activeTool === 'measure-area' ? 'bg-accent text-white font-bold' : 'hover:bg-surface dark:hover:bg-surface text-zinc-800 dark:text-zinc-200'}`}
             >
               <DraftingCompass className="h-3.5 w-3.5 text-accent" />
               <div>
@@ -349,7 +349,7 @@ export default function FloatingAnnotationToolbar({
         )}
       </div>
 
-      <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 flex-shrink-0" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 5. Text Box Tool */}
       <button
@@ -361,7 +361,7 @@ export default function FloatingAnnotationToolbar({
         className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'textbox' 
             ? 'bg-accent text-white shadow-xs' 
-            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+            : 'hover:bg-surface dark:hover:bg-surface text-zinc-600 dark:text-zinc-400'
         }`}
       >
         <Type className="h-4 w-4" />
@@ -377,7 +377,7 @@ export default function FloatingAnnotationToolbar({
         className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'sticky-note' 
             ? 'bg-amber-500 text-white shadow-xs' 
-            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+            : 'hover:bg-surface dark:hover:bg-surface text-zinc-600 dark:text-zinc-400'
         }`}
       >
         <StickyNote className="h-4 w-4" />
@@ -393,13 +393,13 @@ export default function FloatingAnnotationToolbar({
         className={`h-8 w-8 rounded-xl flex items-center justify-center flex-shrink-0 transition-all ${
           activeTool === 'voice-note' 
             ? 'bg-rose-500 text-white shadow-xs' 
-            : 'hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-400'
+            : 'hover:bg-surface dark:hover:bg-surface text-zinc-600 dark:text-zinc-400'
         }`}
       >
         <Mic className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 flex-shrink-0" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 8. Color Palette & Stroke Picker Dropdown */}
       <div className="relative flex-shrink-0">
@@ -412,7 +412,7 @@ export default function FloatingAnnotationToolbar({
             setShowExportMenu(false);
           }}
           title="Annotation Color & Stroke Width"
-          className="h-8 px-2 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-1.5 transition-all shadow-xs"
+          className="h-8 px-2 rounded-xl border border-border hover:bg-surface dark:hover:bg-surface flex items-center gap-1.5 transition-all shadow-xs"
         >
           <div 
             className="h-3.5 w-3.5 rounded-full shadow-xs ring-1 ring-black/20"
@@ -424,7 +424,7 @@ export default function FloatingAnnotationToolbar({
 
         {showColorMenu && (
           <div 
-            className="absolute bottom-11 right-0 z-50 w-52 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-3 text-xs animate-in fade-in zoom-in-95"
+            className="absolute bottom-11 right-0 z-50 w-52 p-3 rounded-2xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl flex flex-col gap-3 text-xs animate-in fade-in zoom-in-95"
           >
             {/* Color Palette */}
             <div>
@@ -510,7 +510,7 @@ export default function FloatingAnnotationToolbar({
             setShowColorMenu(false);
           }}
           title="Export Annotations (XFDF / JSON)"
-          className="h-8 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 flex items-center gap-1 text-xs font-semibold whitespace-nowrap text-zinc-700 dark:text-zinc-300 transition-all shadow-xs"
+          className="h-8 px-2.5 rounded-xl border border-border hover:bg-surface dark:hover:bg-surface flex items-center gap-1 text-xs font-semibold whitespace-nowrap text-zinc-700 dark:text-zinc-300 transition-all shadow-xs"
         >
           <Download className="h-3.5 w-3.5" />
           <span className="hidden lg:inline">Export</span>
@@ -519,7 +519,7 @@ export default function FloatingAnnotationToolbar({
         {showExportMenu && (
           <div 
             onClick={() => setShowExportMenu(false)}
-            className="absolute bottom-11 right-0 z-50 w-52 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
+            className="absolute bottom-11 right-0 z-50 w-52 p-1.5 rounded-xl bg-card/95 dark:bg-card/95 border border-border shadow-2xl backdrop-blur-xl flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95"
           >
             <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Export Annotations</div>
             <button
@@ -558,13 +558,13 @@ export default function FloatingAnnotationToolbar({
       {/* 12. Zoom & Layout Controls (Unified inside same dock with clean layout) */}
       {typeof scale === 'number' && (
         <>
-          <div className="w-[1px] h-5 bg-zinc-200 dark:bg-zinc-800 mx-1 flex-shrink-0" />
+          <div className="w-[1px] h-5 bg-border mx-1 flex-shrink-0" />
 
           {onFitWidth && (
             <button
               onClick={onFitWidth}
               title="Fit to Width"
-              className="h-8 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold whitespace-nowrap text-zinc-800 dark:text-zinc-200 transition-all flex items-center gap-1 flex-shrink-0"
+              className="h-8 px-2.5 rounded-xl border border-border hover:bg-surface dark:hover:bg-surface text-xs font-semibold whitespace-nowrap text-zinc-800 dark:text-zinc-200 transition-all flex items-center gap-1 flex-shrink-0"
             >
               <span>Fit W</span>
             </button>
@@ -574,7 +574,7 @@ export default function FloatingAnnotationToolbar({
             <button
               onClick={onFitPage}
               title="Fit to Page"
-              className="h-8 px-2.5 rounded-xl border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-xs font-semibold whitespace-nowrap text-zinc-800 dark:text-zinc-200 transition-all hidden sm:inline-flex items-center gap-1 flex-shrink-0"
+              className="h-8 px-2.5 rounded-xl border border-border hover:bg-surface dark:hover:bg-surface text-xs font-semibold whitespace-nowrap text-zinc-800 dark:text-zinc-200 transition-all hidden sm:inline-flex items-center gap-1 flex-shrink-0"
             >
               <span>Fit H</span>
             </button>
@@ -585,7 +585,7 @@ export default function FloatingAnnotationToolbar({
               onClick={onZoomOut}
               disabled={scale <= 0.4}
               title="Zoom Out (-)"
-              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-700 dark:text-zinc-300 flex-shrink-0"
+              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors text-zinc-700 dark:text-zinc-300 flex-shrink-0"
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
@@ -599,7 +599,7 @@ export default function FloatingAnnotationToolbar({
               step="1"
               value={Math.round(scale * 100)}
               onChange={(e) => onSetScale(parseFloat(e.target.value) / 100)}
-              className="w-16 sm:w-20 md:w-24 h-1.5 bg-zinc-200 dark:bg-zinc-700 rounded-full appearance-none cursor-pointer accent-accent hidden md:inline-block flex-shrink-0"
+              className="w-16 sm:w-20 md:w-24 h-1.5 bg-surface rounded-full appearance-none cursor-pointer accent-accent hidden md:inline-block flex-shrink-0 border border-border"
               title={`Zoom: ${Math.round(scale * 100)}%`}
             />
           )}
@@ -609,7 +609,7 @@ export default function FloatingAnnotationToolbar({
               onClick={onZoomIn}
               disabled={scale >= 2.5}
               title="Zoom In (+)"
-              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors text-zinc-700 dark:text-zinc-300 flex-shrink-0"
+              className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors text-zinc-700 dark:text-zinc-300 flex-shrink-0"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>
@@ -619,7 +619,7 @@ export default function FloatingAnnotationToolbar({
             <button
               onClick={onZoomReset}
               title="Reset to 100%"
-              className="h-8 px-2.5 rounded-xl bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 hover:border-accent text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 transition-all whitespace-nowrap shadow-2xs flex-shrink-0"
+              className="h-8 px-2.5 rounded-xl bg-surface dark:bg-surface border border-border hover:border-accent text-xs font-mono font-bold text-zinc-900 dark:text-zinc-100 transition-all whitespace-nowrap shadow-2xs flex-shrink-0"
             >
               {Math.round(scale * 100)}%
             </button>

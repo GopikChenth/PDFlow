@@ -256,7 +256,7 @@ export default function PaperStack() {
               <div
                 key={doc.id}
                 ref={(el) => { cardRefs.current[index] = el; }}
-                className="absolute inset-0 rounded-2xl bg-white dark:bg-[#181816] text-zinc-900 dark:text-zinc-100 border border-zinc-900/10 dark:border-zinc-100/10 shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default"
+                className="absolute inset-0 rounded-2xl bg-card dark:bg-card text-zinc-900 dark:text-zinc-100 border border-border shadow-[0_20px_50px_rgba(0,0,0,0.15)] dark:shadow-[0_25px_60px_rgba(0,0,0,0.6)] flex flex-col justify-between p-6 overflow-hidden backface-visible preserve-3d cursor-default"
                 style={{
                   zIndex,
                   willChange: 'transform, opacity',
@@ -265,7 +265,7 @@ export default function PaperStack() {
                 }}
               >
                 {/* Paper Top Bar / Header */}
-                <div className="flex items-start justify-between border-b border-zinc-900/10 dark:border-zinc-100/10 pb-3.5">
+                <div className="flex items-start justify-between border-b border-border pb-3.5">
                   <div className="flex items-center gap-2.5">
                     <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs shadow-sm">
                       <FileText className="h-3.5 w-3.5" />
@@ -300,19 +300,19 @@ export default function PaperStack() {
 
                   {/* Document Custom Graphic Body depending on index */}
                   {index === 0 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-900/5 dark:border-zinc-100/5 flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>PIPELINE RENDER STATUS</span>
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% COMPILED</span>
                       </div>
-                      <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                      <div className="h-1.5 w-full bg-surface rounded-full overflow-hidden border border-border/50">
                         <div className="h-full bg-emerald-500 rounded-full w-[88%]" />
                       </div>
                       <div className="grid grid-cols-2 gap-1.5 pt-1 text-[8.5px] text-zinc-600 dark:text-zinc-300">
-                        <div className="p-1 rounded bg-white dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/50">
+                        <div className="p-1 rounded bg-card dark:bg-card border border-border">
                           MEMORY: <strong className="text-zinc-900 dark:text-zinc-100">42.8 MB</strong>
                         </div>
-                        <div className="p-1 rounded bg-white dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700/50">
+                        <div className="p-1 rounded bg-card dark:bg-card border border-border">
                           LAYERS: <strong className="text-zinc-900 dark:text-zinc-100">8 VECTORS</strong>
                         </div>
                       </div>
@@ -320,7 +320,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 1 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-900/5 dark:border-zinc-100/5 flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>AUDIT METRICS</span>
                         <span className="text-blue-600 dark:text-blue-400 font-semibold">BALANCED</span>
@@ -336,7 +336,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 2 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-900/5 dark:border-zinc-100/5 flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>LEGAL JURISDICTION</span>
                         <span className="font-semibold text-rose-500">STRICT PRIVACY</span>
@@ -356,7 +356,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 3 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-900/5 dark:border-zinc-100/5 flex flex-col gap-1 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>CAD VECTOR GRID</span>
                         <span className="font-semibold text-amber-500">X: 1920 / Y: 1080</span>
@@ -371,7 +371,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 4 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-zinc-100/80 dark:bg-zinc-900/80 border border-zinc-900/5 dark:border-zinc-100/5 flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>TYPOGRAPHY SYSTEM</span>
                         <span className="text-purple-600 dark:text-purple-400 font-semibold">GEIST / PLUS JAKARTA</span>
@@ -389,14 +389,14 @@ export default function PaperStack() {
 
                   {/* Document Simulated Lines */}
                   <div className="space-y-1.5">
-                    <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded w-full" />
-                    <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded w-[85%]" />
-                    <div className="h-1.5 bg-zinc-200 dark:bg-zinc-800 rounded w-[60%]" />
+                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-full" />
+                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-[85%]" />
+                    <div className="h-1.5 bg-surface dark:bg-surface rounded w-[60%]" />
                   </div>
                 </div>
 
                 {/* Paper Footer Bar: Barcode, Stamp, Page Number */}
-                <div className="border-t border-zinc-900/10 dark:border-zinc-100/10 pt-3 flex items-center justify-between font-mono text-[9px] text-zinc-400">
+                <div className="border-t border-border pt-3 flex items-center justify-between font-mono text-[9px] text-zinc-400">
                   <div className="flex items-center gap-2">
                     <div className="flex items-center gap-0.5 h-3 opacity-60">
                       <div className="w-[1px] h-full bg-current" />

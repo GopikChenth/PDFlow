@@ -211,7 +211,7 @@ export default function MergeTool({ initialDoc, onOpenMergedDoc }: MergeToolProp
       />
 
       {/* Header Toolbar */}
-      <div className="h-14 border-b border-border bg-surface/70 dark:bg-surface/50 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0">
+      <div className="h-14 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-sm">
             <Combine className="h-4 w-4" />

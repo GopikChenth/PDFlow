@@ -199,7 +199,7 @@ export default function WorkspacePage({
 
       {/* 1. Left Sidebar Navigation (Hidden when viewing an active document in PDF Viewer so PDF Pages sidebar is primary) */}
       {!(activeTab === 'viewer' && activeDoc) && (
-        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface/50 dark:bg-surface/30 backdrop-blur-md p-4">
+        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md p-4">
           <div className="flex flex-col gap-6">
             
             {/* Brand Header with Home Action */}
@@ -256,7 +256,7 @@ export default function WorkspacePage({
                       <Icon className="h-4 w-4" /> {item.label}
                     </span>
                     {typeof count === 'number' && count > 0 && (
-                      <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
+                      <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
                         {count}
                       </span>
                     )}
@@ -296,7 +296,7 @@ export default function WorkspacePage({
             <div className="flex items-center justify-between gap-2 px-1">
               <button
                 onClick={onToggleDarkMode}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors shadow-xs"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-surface dark:hover:bg-surface transition-colors shadow-xs"
               >
                 {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
                 <span>{darkMode ? 'Light' : 'Dark'}</span>

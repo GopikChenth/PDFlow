@@ -129,7 +129,7 @@ export default function TitleBar({
     <div 
       ref={menuContainerRef}
       data-tauri-drag-region
-      className="h-8 w-full bg-surface/90 dark:bg-card/90 backdrop-blur-md border-b border-border/80 flex items-center justify-between px-2 select-none z-50 text-xs text-zinc-700 dark:text-zinc-300 flex-shrink-0"
+      className="h-8 w-full bg-surface/95 dark:bg-surface/95 backdrop-blur-md border-b border-border flex items-center justify-between px-2 select-none z-50 text-xs text-zinc-700 dark:text-zinc-300 flex-shrink-0"
     >
       {/* 1. Left: Brand & Menu Items */}
       <div className="flex items-center gap-1 min-w-0" data-tauri-drag-region>
