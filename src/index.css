@@ -133,3 +133,14 @@ html, body, #root {
 .textLayer.selecting .endOfContent {
   top: 0;
 }
+
+/* ==========================================================================
+   Canvas Rendering & Contrast Optimization (DirectWrite / Desktop Simulation)
+   ========================================================================== */
+canvas {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

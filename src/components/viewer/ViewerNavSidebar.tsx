@@ -92,7 +92,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
               const currentAspect = unscaledVp.width / unscaledVp.height;
               setAspectRatio(currentAspect);
 
-              const pixelRatio = window.devicePixelRatio || 1;
+              const pixelRatio = Math.max(window.devicePixelRatio || 1, 1.5);
               const targetWidth = Math.round(180 * pixelRatio);
               const scale = targetWidth / unscaledVp.width;
               const viewport = page.getViewport({ scale, rotation });
@@ -105,6 +105,14 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
 
               const ctx = canvas.getContext('2d', { alpha: false });
               if (!ctx) return;
+
+              // 1. Fill solid crisp white paper backing
+              ctx.fillStyle = '#ffffff';
+              ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+              // 2. High-quality image smoothing for vector line downsampling
+              ctx.imageSmoothingEnabled = true;
+              ctx.imageSmoothingQuality = 'high';
 
               renderTask = page.render({
                 canvasContext: ctx,
@@ -159,6 +167,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
       >
         <canvas
           ref={canvasRef}
+          style={{ imageRendering: '-webkit-optimize-contrast' }}
           className={`w-full h-full object-contain transition-opacity duration-200 ${
             rendered ? 'opacity-100' : 'opacity-0'
           }`}
