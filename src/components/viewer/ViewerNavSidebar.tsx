@@ -45,7 +45,7 @@ interface ThumbnailCardProps {
   onSelect: (pageNum: number) => void;
 }
 
-const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
+const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
   pageNum,
   isCurrent,
   pdfDoc,
@@ -55,7 +55,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
   onSelect,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const containerRef = useRef<HTMLButtonElement | null>(null);
   const [rendered, setRendered] = useState(false);
   const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 150, height: 200 });
 
@@ -168,17 +168,26 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
         try { renderTask.cancel(); } catch {}
       }
     };
-  }, [pdfDoc, pageNum, rotation, rendered, columns]);
+  }, [pdfDoc, pageNum, rotation, rendered, columns, sidebarWidth]);
 
   return (
-    <div
+    <button
+      type="button"
       ref={containerRef}
       onClick={() => onSelect(pageNum)}
-      className="group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-all cursor-pointer select-none"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(pageNum);
+        }
+      }}
+      aria-label={`Page ${pageNum}${isCurrent ? ', current page' : ''}`}
+      aria-current={isCurrent ? 'page' : undefined}
+      className="group relative flex flex-col items-center gap-1.5 p-2 rounded-xl transition-colors cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 [content-visibility:auto] [contain-intrinsic-size:0_220px]"
     >
       {/* Paper Sheet Preview */}
       <div 
-        className={`bg-white rounded-[3px] overflow-hidden relative transition-all duration-150 flex items-center justify-center ${
+        className={`bg-white rounded-[3px] overflow-hidden relative transition-shadow duration-150 flex items-center justify-center ${
           isCurrent
             ? 'ring-2 ring-blue-600 dark:ring-blue-500 shadow-md'
             : 'border border-zinc-200 dark:border-zinc-700 shadow-xs group-hover:border-zinc-400 dark:group-hover:border-zinc-500 group-hover:shadow-sm'
@@ -197,15 +206,15 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
         />
         {!rendered && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 text-zinc-400 bg-zinc-50 dark:bg-zinc-800/40">
-            <FileText className="h-5 w-5 opacity-30 animate-pulse" />
-            <span className="text-[10px] font-mono opacity-50">{pageNum}</span>
+            <FileText className="h-5 w-5 opacity-30 animate-pulse" aria-hidden="true" />
+            <span className="text-[10px] font-mono opacity-50 tabular-nums">{pageNum}</span>
           </div>
         )}
       </div>
 
       {/* Clean Centered Page Number */}
       <span
-        className={`text-[11px] transition-colors font-medium ${
+        className={`text-[11px] transition-colors font-medium tabular-nums ${
           isCurrent 
             ? 'text-blue-600 dark:text-blue-400 font-bold' 
             : 'text-zinc-500 dark:text-zinc-400 group-hover:text-zinc-900 dark:group-hover:text-zinc-100'
@@ -213,9 +222,9 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = ({
       >
         {pageNum}
       </span>
-    </div>
+    </button>
   );
-};
+});
 
 interface ViewerNavSidebarProps {
   isOpen: boolean;
@@ -437,34 +446,44 @@ export default function ViewerNavSidebar({
       {/* 1. Sleek Fixed Header Bar */}
       <div className="px-3.5 py-2.5 border-b border-border/70 flex items-center justify-between bg-card/40 dark:bg-card/20 flex-shrink-0">
         <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-          Pages <span className="text-zinc-400 font-mono text-[11px] font-normal">({totalPages})</span>
+          Pages <span className="text-zinc-400 font-mono text-[11px] font-normal tabular-nums">({totalPages})</span>
         </span>
         <div className="flex items-center gap-1.5">
           <div className="flex items-center gap-0.5 bg-card/90 dark:bg-zinc-800/80 border border-border/80 rounded-lg p-0.5 shadow-2xs">
             <button
+              type="button"
               onClick={() => setThumbnailColumns('1')}
               title="Single Column View (1 per row)"
-              className={`p-1 rounded-md transition-colors ${thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+              aria-label="Single column view"
+              className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
+                thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
             >
-              <Columns className="h-3.5 w-3.5" />
+              <Columns className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
             <button
+              type="button"
               onClick={() => setThumbnailColumns('2')}
               title="2-Column Grid View"
-              className={`p-1 rounded-md transition-colors ${thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'}`}
+              aria-label="Two column grid view"
+              className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
+                thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+              }`}
             >
-              <Grid className="h-3.5 w-3.5" />
+              <Grid className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
 
           {/* Hide Sidebar Button */}
           {onClose && (
             <button
+              type="button"
               onClick={onClose}
               title="Hide Sidebar (Ctrl+B)"
-              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer"
+              aria-label="Hide sidebar"
+              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
             >
-              <PanelLeftClose className="h-3.5 w-3.5" />
+              <PanelLeftClose className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           )}
         </div>

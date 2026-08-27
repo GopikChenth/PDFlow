@@ -1033,25 +1033,29 @@ export default function PDFViewer({
           <div className="h-4 w-[1px] bg-border hidden md:block" />
 
           {/* Page Navigator */}
-          <div className="flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg px-1 py-0.5 text-xs font-mono">
+          <div className="flex items-center gap-1 bg-surface dark:bg-card border border-border rounded-lg px-1 py-0.5 text-xs font-mono tabular-nums">
             <button
+              type="button"
               onClick={() => scrollToPage(Math.max(currentPage - 1, 1))}
               disabled={currentPage <= 1}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
               title="Previous Page"
+              aria-label="Previous Page"
             >
-              <ChevronLeft className="h-3.5 w-3.5" />
+              <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
-            <span className="px-1 text-[11px] font-medium">
+            <span className="px-1 text-[11px] font-medium tabular-nums">
               {currentPage} / {pages.length || 1}
             </span>
             <button
+              type="button"
               onClick={() => scrollToPage(Math.min(currentPage + 1, pages.length))}
               disabled={currentPage >= pages.length}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors"
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
               title="Next Page"
+              aria-label="Next Page"
             >
-              <ChevronRight className="h-3.5 w-3.5" />
+              <ChevronRight className="h-3.5 w-3.5" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -1274,11 +1278,13 @@ export default function PDFViewer({
         ) : (
           <div className="absolute top-3 left-3 z-30">
             <button
+              type="button"
               onClick={() => toggleNavSidebar(true)}
               title="Show Sidebar (Ctrl+B)"
-              className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 transition-all cursor-pointer select-none"
+              aria-label="Show Pages Sidebar"
+              className="h-8 px-2.5 rounded-lg border border-border/80 bg-card/95 dark:bg-zinc-900/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer select-none"
             >
-              <PanelLeftOpen className="h-3.5 w-3.5 text-accent" />
+              <PanelLeftOpen className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
               <span>Pages</span>
             </button>
           </div>
