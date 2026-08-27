@@ -12,7 +12,6 @@ import {
   FileText,
   Search,
   BookOpen,
-  LayoutGrid,
   Columns,
   Eye,
   ChevronDown
@@ -998,21 +997,6 @@ export default function PDFViewer({
         {/* Left: Navigation Drawer Toggle & Document details */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
           
-          {/* Navigation Drawer Button */}
-          <button
-            onClick={() => setIsNavSidebarOpen((prev) => !prev)}
-            title="Toggle Navigation Panes (TOC, Thumbnails, Comments, Bookmarks) [⌘B]"
-            className={`h-8 px-2.5 rounded-lg border flex items-center gap-1.5 text-xs font-semibold transition-all shadow-xs ${
-              isNavSidebarOpen 
-                ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' 
-                : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
-            }`}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Inspect</span>
-          </button>
-
-          <div className="h-4 w-[1px] bg-border hidden sm:block" />
 
           {/* Document Title */}
           <div className="flex items-center gap-1.5 min-w-0">
