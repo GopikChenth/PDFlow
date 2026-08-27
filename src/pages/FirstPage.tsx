@@ -32,13 +32,13 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
       <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center font-extrabold text-base shadow-md">
+          <div className="h-9 w-9 rounded-xl bg-accent text-white flex items-center justify-center font-extrabold text-base shadow-md">
             P
           </div>
           <div>
             <div className="flex items-center gap-2">
               <span className="text-base font-bold tracking-tight text-zinc-900 dark:text-zinc-100">PDFlow</span>
-              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-800/80 text-zinc-600 dark:text-zinc-400 border border-border">
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-surface border border-border text-zinc-600 dark:text-zinc-400">
                 STUDIO v2.0
               </span>
             </div>
@@ -51,7 +51,7 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
           <button
             onClick={onToggleDarkMode}
             aria-label="Toggle Theme"
-            className="flex items-center justify-center h-9 w-9 rounded-full bg-surface border border-border hover:bg-zinc-200/60 dark:hover:bg-zinc-800 transition-colors shadow-sm text-zinc-600 dark:text-zinc-300"
+            className="flex items-center justify-center h-9 w-9 rounded-full bg-surface border border-border hover:bg-card dark:hover:bg-card transition-colors shadow-sm text-zinc-600 dark:text-zinc-300"
           >
             {darkMode ? <Sun className="h-4 w-4 text-amber-400" /> : <Moon className="h-4 w-4 text-zinc-600" />}
           </button>
@@ -59,7 +59,7 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
           {/* Direct CTA */}
           <button
             onClick={onEnterWorkspace}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-xs font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-md active:scale-95 group"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent hover:bg-accent-hover text-white text-xs font-semibold transition-all shadow-md active:scale-95 group"
           >
             <span>Open Studio</span>
             <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-0.5 transition-transform" />
@@ -90,11 +90,11 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={onEnterWorkspace}
-              className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 text-sm font-semibold hover:bg-accent dark:hover:bg-accent dark:hover:text-white transition-all shadow-lg hover:shadow-accent/20 active:scale-[0.98] group"
+              className="flex items-center gap-2.5 px-6 py-3.5 rounded-xl bg-accent hover:bg-accent-hover text-white text-sm font-semibold transition-all shadow-lg hover:shadow-accent/20 active:scale-[0.98] group"
             >
               <FolderOpen className="h-4 w-4" />
               <span>Launch Workspace</span>
-              <span className="text-[11px] font-mono opacity-60 bg-black/20 dark:bg-white/20 px-2 py-0.5 rounded">
+              <span className="text-[11px] font-mono opacity-80 bg-white/20 px-2 py-0.5 rounded">
                 ⌘↵
               </span>
             </button>

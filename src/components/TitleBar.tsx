@@ -162,7 +162,7 @@ export default function TitleBar({
           </button>
 
           {activeMenu === 'file' && (
-            <div className="absolute top-full left-0 mt-0.5 w-56 rounded-lg bg-card/95 dark:bg-card/95 border border-border shadow-xl backdrop-blur-lg py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
+            <div className="absolute top-full left-0 mt-1 w-56 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
               {onOpenDocument && (
                 <button
                   onClick={() => handleAction(onOpenDocument)}
@@ -261,7 +261,7 @@ export default function TitleBar({
           </button>
 
           {activeMenu === 'edit' && (
-            <div className="absolute top-full left-0 mt-0.5 w-52 rounded-lg bg-card/95 dark:bg-card/95 border border-border shadow-xl backdrop-blur-lg py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
+            <div className="absolute top-full left-0 mt-1 w-52 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
               {onSelectTab && (
                 <button
                   onClick={() => handleAction(() => onSelectTab('organizer'))}
@@ -299,7 +299,7 @@ export default function TitleBar({
           </button>
 
           {activeMenu === 'view' && (
-            <div className="absolute top-full left-0 mt-0.5 w-52 rounded-lg bg-card/95 dark:bg-card/95 border border-border shadow-xl backdrop-blur-lg py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
+            <div className="absolute top-full left-0 mt-1 w-52 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
               <button
                 onClick={() => handleAction(onToggleDarkMode)}
                 className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-white transition-colors text-left"
@@ -348,7 +348,7 @@ export default function TitleBar({
           </button>
 
           {activeMenu === 'window' && (
-            <div className="absolute top-full left-0 mt-0.5 w-48 rounded-lg bg-card/95 dark:bg-card/95 border border-border shadow-xl backdrop-blur-lg py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
+            <div className="absolute top-full left-0 mt-1 w-48 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
               <button
                 onClick={() => handleAction(handleMinimize)}
                 className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-white transition-colors text-left"
@@ -392,15 +392,33 @@ export default function TitleBar({
           </button>
 
           {activeMenu === 'help' && (
-            <div className="absolute top-full left-0 mt-0.5 w-56 rounded-lg bg-card/95 dark:bg-card/95 border border-border shadow-xl backdrop-blur-lg py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
-              <div className="px-3 py-1.5 font-semibold text-zinc-900 dark:text-zinc-100 border-b border-border">
-                PDF Studio v2.0 Core
+            <div className="absolute top-full left-0 mt-1 w-64 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1.5 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
+              <div className="px-3.5 py-2 border-b border-border flex items-center justify-between">
+                <span className="font-bold text-xs text-zinc-900 dark:text-zinc-50">PDF Studio</span>
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-accent/15 text-accent border border-accent/20">v2.0 Core</span>
               </div>
-              <div className="px-3 py-2 text-[10px] text-zinc-500 font-mono leading-relaxed">
-                100% In-Memory Client Processing<br />
-                Hardware Vector Engine<br />
-                Zero Telemetry Local Security
+              <div className="px-3.5 py-2.5 flex flex-col gap-2 font-mono text-[11px] text-zinc-700 dark:text-zinc-200">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 flex-shrink-0" />
+                  <span>100% In-Memory Processing</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 flex-shrink-0" />
+                  <span>Hardware Vector Engine</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-purple-500 flex-shrink-0" />
+                  <span>Zero Cloud Telemetry</span>
+                </div>
               </div>
+              <div className="my-1 border-t border-border" />
+              <button
+                onClick={() => handleAction(onReturnToCover || (() => {}))}
+                className="w-full flex items-center justify-between px-3.5 py-1.5 hover:bg-accent hover:text-white text-zinc-700 dark:text-zinc-300 transition-colors text-left font-sans"
+              >
+                <span>Documentation & Cover</span>
+                <span className="text-[10px] font-mono opacity-60">⌘↵</span>
+              </button>
             </div>
           )}
         </div>
