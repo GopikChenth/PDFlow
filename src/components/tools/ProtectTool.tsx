@@ -172,7 +172,7 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
                 onClick={() => setMode('protect')}
                 className={`py-2 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                   mode === 'protect'
-                    ? 'bg-card dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
+                    ? 'bg-card dark:bg-surface text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
               >
@@ -184,7 +184,7 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
                 onClick={() => setMode('unlock')}
                 className={`py-2 px-4 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
                   mode === 'unlock'
-                    ? 'bg-card dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
+                    ? 'bg-card dark:bg-surface text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
               >

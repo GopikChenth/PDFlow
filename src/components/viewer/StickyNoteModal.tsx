@@ -309,7 +309,7 @@ export default function StickyNoteModal({
             <button
               onClick={onClose}
               title="Close (Esc)"
-              className="h-7 w-7 rounded-lg hover:bg-surface dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+              className="h-7 w-7 rounded-lg hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
             >
               <X className="h-3.5 w-3.5" />
             </button>

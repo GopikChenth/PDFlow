@@ -86,7 +86,7 @@ export default function TextReflowView({
             <button
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.max(12, s.fontSize - 2) }))}
               title="Decrease Font Size"
-              className="h-7 w-7 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+              className="h-7 w-7 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface transition-colors"
             >
               <Minus className="h-3.5 w-3.5" />
             </button>
@@ -94,7 +94,7 @@ export default function TextReflowView({
             <button
               onClick={() => setSettings((s) => ({ ...s, fontSize: Math.min(28, s.fontSize + 2) }))}
               title="Increase Font Size"
-              className="h-7 w-7 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 transition-colors"
+              className="h-7 w-7 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface transition-colors"
             >
               <Plus className="h-3.5 w-3.5" />
             </button>

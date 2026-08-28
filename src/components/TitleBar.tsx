@@ -458,7 +458,7 @@ export default function TitleBar({
         <button
           onClick={onToggleDarkMode}
           title={darkMode ? 'Switch to Light Mode (⌘T)' : 'Switch to Dark Mode (⌘T)'}
-          className="h-6 w-6 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
+          className="h-6 w-6 rounded hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors"
         >
           {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
         </button>
@@ -467,7 +467,7 @@ export default function TitleBar({
           <button
             onClick={onToggleFullscreen}
             title="Toggle Fullscreen (F11)"
-            className="h-6 w-6 rounded hover:bg-zinc-200/80 dark:hover:bg-zinc-800 flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors hidden sm:flex"
+            className="h-6 w-6 rounded hover:bg-surface dark:hover:bg-surface flex items-center justify-center text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors hidden sm:flex"
           >
             <Maximize2 className="h-3 w-3" />
           </button>

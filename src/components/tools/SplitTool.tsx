@@ -259,7 +259,7 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
                 onClick={() => setSplitMode('range')}
                 className={`py-2 px-4 rounded-lg text-xs font-semibold transition-all ${
                   splitMode === 'range'
-                    ? 'bg-card dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
+                    ? 'bg-card dark:bg-surface text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
               >
@@ -270,7 +270,7 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
                 onClick={() => setSplitMode('selected')}
                 className={`py-2 px-4 rounded-lg text-xs font-semibold transition-all ${
                   splitMode === 'selected'
-                    ? 'bg-card dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
+                    ? 'bg-card dark:bg-surface text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-bold'
                     : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                 }`}
               >

@@ -1098,7 +1098,7 @@ export default function PDFViewer({
               type="button"
               onClick={() => scrollToPage(Math.max(currentPage - 1, 1))}
               disabled={currentPage <= 1}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
               title="Previous Page"
               aria-label="Previous Page"
             >
@@ -1111,7 +1111,7 @@ export default function PDFViewer({
               type="button"
               onClick={() => scrollToPage(Math.min(currentPage + 1, pages.length))}
               disabled={currentPage >= pages.length}
-              className="h-6 w-6 rounded flex items-center justify-center hover:bg-card dark:hover:bg-zinc-800 disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              className="h-6 w-6 rounded flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
               title="Next Page"
               aria-label="Next Page"
             >
@@ -1129,7 +1129,7 @@ export default function PDFViewer({
               onClick={() => setShowLayoutMenu((prev) => !prev)}
               title="Page Layout Modes"
               className={`h-8 px-2.5 rounded-lg border flex items-center gap-1 text-xs font-medium transition-colors shadow-xs ${
-                layoutMode !== 'continuous' ? 'bg-accent/10 border-accent text-accent font-semibold' : 'border-border hover:bg-card'
+                layoutMode !== 'continuous' ? 'bg-accent/10 border-accent text-accent font-semibold' : 'border-border hover:bg-surface'
               }`}
             >
               <Columns className="h-3.5 w-3.5" />
@@ -1187,7 +1187,7 @@ export default function PDFViewer({
           <button
             onClick={() => setIsReflowOpen(true)}
             title="Text-Reflow Responsive Reader Mode"
-            className="h-8 px-2.5 rounded-lg border border-border hover:bg-card flex items-center gap-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors shadow-xs"
+            className="h-8 px-2.5 rounded-lg border border-border hover:bg-surface flex items-center gap-1 text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors shadow-xs"
           >
             <BookOpen className="h-3.5 w-3.5 text-accent" />
             <span className="hidden md:inline">Reflow</span>
@@ -1198,7 +1198,7 @@ export default function PDFViewer({
             onClick={() => setIsSearchOpen((prev) => !prev)}
             title="Find & Search (⌘F / Ctrl+F)"
             className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-colors shadow-xs ${
-              isSearchOpen ? 'bg-accent text-white border-accent' : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
+              isSearchOpen ? 'bg-accent text-white border-accent' : 'border-border hover:bg-surface text-zinc-700 dark:text-zinc-300'
             }`}
           >
             <Search className="h-3.5 w-3.5" />
@@ -1209,7 +1209,7 @@ export default function PDFViewer({
             onClick={() => setFocusMode((prev) => !prev)}
             title={focusMode ? 'Exit Zen Focus Mode [Z]' : 'Enter Zen Focus Mode (Dims UI) [Z]'}
             className={`h-8 w-8 rounded-lg border flex items-center justify-center transition-colors shadow-xs ${
-              focusMode ? 'bg-indigo-600 text-white border-indigo-600' : 'border-border hover:bg-card text-zinc-700 dark:text-zinc-300'
+              focusMode ? 'bg-indigo-600 text-white border-indigo-600' : 'border-border hover:bg-surface text-zinc-700 dark:text-zinc-300'
             }`}
           >
             <Eye className="h-3.5 w-3.5" />
@@ -1219,7 +1219,7 @@ export default function PDFViewer({
           <button
             onClick={handleRotateCW}
             title="Rotate 90° Clockwise [R]"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-card flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
+            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
           >
             <RotateCw className="h-3.5 w-3.5" />
           </button>
@@ -1228,7 +1228,7 @@ export default function PDFViewer({
           <button
             onClick={handlePrint}
             title="Print Document"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-card flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
+            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
           >
             <Printer className="h-3.5 w-3.5" />
           </button>
@@ -1236,7 +1236,7 @@ export default function PDFViewer({
           <button
             onClick={handleDownload}
             title="Download PDF File"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-card flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
+            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
           >
             <Download className="h-3.5 w-3.5" />
           </button>
@@ -1244,7 +1244,7 @@ export default function PDFViewer({
           <button
             onClick={handleToggleFullscreen}
             title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-            className="h-8 w-8 rounded-lg border border-border hover:bg-card flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
+            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs"
           >
             {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
           </button>

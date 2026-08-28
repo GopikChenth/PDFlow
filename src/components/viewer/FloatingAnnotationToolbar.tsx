@@ -450,11 +450,11 @@ export default function FloatingAnnotationToolbar({
             </div>
 
             {/* Stroke Width Selector */}
-            <div className="pt-2 border-t border-zinc-200 dark:border-zinc-800">
+            <div className="pt-2 border-t border-border">
               <div className="text-[10px] font-mono text-zinc-400 uppercase font-semibold mb-1.5">
                 Stroke Width
               </div>
-              <div className="flex items-center justify-between gap-1 bg-zinc-50 dark:bg-zinc-800/60 p-1 rounded-xl border border-zinc-200 dark:border-zinc-700">
+              <div className="flex items-center justify-between gap-1 bg-surface p-1 rounded-xl border border-border">
                 {STROKE_SIZES.map((sz) => (
                   <button
                     key={sz}
@@ -476,14 +476,14 @@ export default function FloatingAnnotationToolbar({
         )}
       </div>
 
-      <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 flex-shrink-0" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 9. Undo / Redo */}
       <button
         onClick={onUndo}
         disabled={!canUndo}
         title="Undo Annotation (⌘Z)"
-        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
+        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
       >
         <Undo2 className="h-4 w-4" />
       </button>
@@ -492,12 +492,12 @@ export default function FloatingAnnotationToolbar({
         onClick={onRedo}
         disabled={!canRedo}
         title="Redo Annotation (⌘⇧Z)"
-        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
+        className="h-8 w-8 rounded-xl flex items-center justify-center hover:bg-surface dark:hover:bg-surface disabled:opacity-30 text-zinc-600 dark:text-zinc-400 transition-colors flex-shrink-0"
       >
         <Redo2 className="h-4 w-4" />
       </button>
 
-      <div className="w-[1px] h-4 bg-zinc-200 dark:bg-zinc-800 mx-0.5 flex-shrink-0" />
+      <div className="w-[1px] h-4 bg-border mx-0.5 flex-shrink-0" />
 
       {/* 10. Export Annotations Dropdown */}
       <div className="relative flex-shrink-0">
