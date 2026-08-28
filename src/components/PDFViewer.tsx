@@ -35,6 +35,7 @@ import TextReflowView from './viewer/TextReflowView';
 import FloatingAnnotationToolbar from './viewer/FloatingAnnotationToolbar';
 import AnnotationLayer from './viewer/AnnotationLayer';
 import StickyNoteModal from './viewer/StickyNoteModal';
+import DocumentTabBar from './viewer/DocumentTabBar';
 import { exportToXFDF, exportToJSON, downloadFile } from '../utils/annotationExporter';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -47,6 +48,8 @@ interface PDFViewerProps {
   allDocs?: LoadedPDF[];
   onClose?: () => void;
   onSelectDoc?: (doc: LoadedPDF) => void;
+  onCloseDoc?: (docId: string, e?: React.MouseEvent) => void;
+  onNewTab?: () => void;
   onBackToTools?: () => void;
   onOpenDocument?: () => void;
   onOpenOrganizer?: () => void;
@@ -71,6 +74,8 @@ export default function PDFViewer({
   allDocs = [], 
   onClose, 
   onSelectDoc,
+  onCloseDoc,
+  onNewTab,
   onBackToTools,
   onOpenDocument,
   onOpenOrganizer,
@@ -884,6 +889,34 @@ export default function PDFViewer({
       } else if ((e.metaKey || e.ctrlKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
         toggleNavSidebar();
+      } else if (e.ctrlKey && e.key === 'Tab') {
+        // Switch between open tabs
+        e.preventDefault();
+        if (allDocs && allDocs.length > 1 && onSelectDoc) {
+          const currentIndex = allDocs.findIndex((d) => d.id === doc.id);
+          if (currentIndex !== -1) {
+            let nextIndex = e.shiftKey ? currentIndex - 1 : currentIndex + 1;
+            if (nextIndex >= allDocs.length) nextIndex = 0;
+            if (nextIndex < 0) nextIndex = allDocs.length - 1;
+            onSelectDoc(allDocs[nextIndex]);
+          }
+        }
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 'w' || e.key === 'W')) {
+        // Close active tab
+        e.preventDefault();
+        if (onCloseDoc) {
+          onCloseDoc(doc.id);
+        } else if (onClose) {
+          onClose();
+        }
+      } else if ((e.metaKey || e.ctrlKey) && (e.key === 't' || e.key === 'T')) {
+        // Open new tab
+        e.preventDefault();
+        if (onNewTab) {
+          onNewTab();
+        } else if (onOpenDocument) {
+          onOpenDocument();
+        }
       } else if (e.key === 'v' || e.key === 'V') {
         if (!e.ctrlKey && !e.metaKey) setActiveAnnotationTool('select');
       } else if (e.key === 'h' || e.key === 'H') {
@@ -911,7 +944,23 @@ export default function PDFViewer({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isSearchOpen, isReflowOpen, showLayoutMenu, isNavSidebarOpen, activeStickyModalAnn, activeAnnotationTool, handleUndo, handleRedo]);
+  }, [
+    isSearchOpen, 
+    isReflowOpen, 
+    showLayoutMenu, 
+    isNavSidebarOpen, 
+    activeStickyModalAnn, 
+    activeAnnotationTool, 
+    handleUndo, 
+    handleRedo,
+    allDocs,
+    doc.id,
+    onSelectDoc,
+    onCloseDoc,
+    onClose,
+    onNewTab,
+    onOpenDocument
+  ]);
 
   // 7. Page Layout Groups Construction
   const layoutGroups = useMemo(() => {
@@ -1011,6 +1060,17 @@ export default function PDFViewer({
         isFullscreen ? 'fixed inset-0 z-50' : ''
       }`}
     >
+      {/* Multi-Document Google Chrome-Style Tab Bar */}
+      {allDocs && allDocs.length > 0 && onSelectDoc && (
+        <DocumentTabBar
+          docs={allDocs}
+          activeDocId={doc.id}
+          onSelectDoc={onSelectDoc}
+          onCloseDoc={onCloseDoc || ((_id) => onClose?.())}
+          onNewTab={onNewTab || onOpenDocument || (() => {})}
+        />
+      )}
+
       {/* 1. Integrated Full-Featured Clean App Toolbar */}
       <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
         focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'

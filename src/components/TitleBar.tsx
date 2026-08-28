@@ -10,7 +10,8 @@ import {
   Minimize2, 
   Stamp, 
   Lock, 
-  Maximize2
+  Maximize2,
+  Plus
 } from 'lucide-react';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
@@ -164,15 +165,27 @@ export default function TitleBar({
           {activeMenu === 'file' && (
             <div className="absolute top-full left-0 mt-1 w-56 rounded-xl bg-card dark:bg-[#1c1c22] border border-border shadow-2xl py-1 z-50 text-[11px] flex flex-col animate-in fade-in zoom-in-95 duration-75">
               {onOpenDocument && (
-                <button
-                  onClick={() => handleAction(onOpenDocument)}
-                  className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-white transition-colors text-left"
-                >
-                  <span className="flex items-center gap-2">
-                    <FolderOpen className="h-3.5 w-3.5" /> Open Document...
-                  </span>
-                  <span className="text-[9px] font-mono opacity-60">⌘O</span>
-                </button>
+                <>
+                  <button
+                    onClick={() => handleAction(onOpenDocument)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-white transition-colors text-left"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Plus className="h-3.5 w-3.5" /> New Tab...
+                    </span>
+                    <span className="text-[9px] font-mono opacity-60">⌘T</span>
+                  </button>
+
+                  <button
+                    onClick={() => handleAction(onOpenDocument)}
+                    className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-accent hover:text-white transition-colors text-left"
+                  >
+                    <span className="flex items-center gap-2">
+                      <FolderOpen className="h-3.5 w-3.5" /> Open Document...
+                    </span>
+                    <span className="text-[9px] font-mono opacity-60">⌘O</span>
+                  </button>
+                </>
               )}
 
               {onSelectTab && (

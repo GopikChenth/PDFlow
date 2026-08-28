@@ -31,6 +31,10 @@ export interface LoadedPDF {
   blobUrl: string;
   file: File;
   loadedAt: Date;
+  pageCount?: number;
+  currentPage?: number;
+  zoomScale?: number;
+  rotation?: number;
 }
 
 export interface OrganizerPageItem {

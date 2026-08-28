@@ -49,11 +49,19 @@ export default function WorkspacePage({
     if (onActiveTabChange) onActiveTabChange(tab);
   }, [onActiveTabChange]);
 
-  const [activeDoc, setActiveDocState] = useState<LoadedPDF | null>(null);
-  const setActiveDoc = useCallback((doc: LoadedPDF | null) => {
-    setActiveDocState(doc);
-    if (onActiveDocChange) onActiveDocChange(doc ? doc.name : null);
-  }, [onActiveDocChange]);
+  const [openDocs, setOpenDocs] = useState<LoadedPDF[]>([]);
+  const [activeDocId, setActiveDocId] = useState<string | null>(null);
+
+  const activeDoc = React.useMemo(() => {
+    if (!activeDocId && openDocs.length > 0) return openDocs[0];
+    return openDocs.find((d) => d.id === activeDocId) || null;
+  }, [openDocs, activeDocId]);
+
+  useEffect(() => {
+    if (onActiveDocChange) {
+      onActiveDocChange(activeDoc ? activeDoc.name : null);
+    }
+  }, [activeDoc, onActiveDocChange]);
 
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
@@ -76,36 +84,53 @@ export default function WorkspacePage({
     }
   }, []);
 
-  // Process a chosen File
-  const processFile = useCallback((file: File) => {
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Please select a valid PDF file.');
+  // Process chosen File(s)
+  const processFiles = useCallback((files: FileList | File[]) => {
+    const validFiles: File[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+        validFiles.push(file);
+      }
+    }
+
+    if (validFiles.length === 0) {
+      alert('Please select valid PDF file(s).');
       return;
     }
 
-    const blobUrl = URL.createObjectURL(file);
-    const newDoc: LoadedPDF = {
-      id: `${Date.now()}-${file.name}`,
+    const newDocs: LoadedPDF[] = validFiles.map((file, idx) => ({
+      id: `${Date.now()}-${idx}-${file.name}`,
       name: file.name,
       size: formatFileSize(file.size),
       rawSize: file.size,
-      blobUrl,
+      blobUrl: URL.createObjectURL(file),
       file,
       loadedAt: new Date(),
-    };
+    }));
 
-    setActiveDoc(newDoc);
-    setRecentDocs((prev) => [newDoc, ...prev.filter((d) => d.name !== file.name)]);
+    setOpenDocs((prev) => {
+      const existingNames = new Set(prev.map((d) => d.name));
+      const toAdd = newDocs.filter((d) => !existingNames.has(d.name));
+      return [...prev, ...(toAdd.length > 0 ? toAdd : newDocs)];
+    });
+
+    setRecentDocs((prev) => [
+      ...newDocs,
+      ...prev.filter((d) => !newDocs.some((nd) => nd.name === d.name)),
+    ]);
+
+    setActiveDocId(newDocs[newDocs.length - 1].id);
     setActiveTab('viewer');
-  }, []);
+  }, [setActiveTab]);
 
   // File input change event
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      processFile(files[0]);
+      processFiles(files);
     }
-  }, [processFile]);
+  }, [processFiles]);
 
   // Drag & Drop handlers
   const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
@@ -126,9 +151,9 @@ export default function WorkspacePage({
     setIsDragging(false);
 
     if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFile(e.dataTransfer.files[0]);
+      processFiles(e.dataTransfer.files);
     }
-  }, [processFile]);
+  }, [processFiles]);
 
   // Keyboard shortcut: ⌘O / Ctrl+O to open file dialog
   useEffect(() => {
@@ -142,11 +167,51 @@ export default function WorkspacePage({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleTriggerOpenFile]);
 
+  // Tab switching
+  const handleSelectTabDoc = useCallback((doc: LoadedPDF) => {
+    setOpenDocs((prev) => {
+      if (!prev.some((d) => d.id === doc.id)) {
+        return [...prev, doc];
+      }
+      return prev;
+    });
+    setActiveDocId(doc.id);
+    setActiveTab('viewer');
+  }, [setActiveTab]);
+
+  // Tab closing
+  const handleCloseTabDoc = useCallback((docId: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.stopPropagation();
+    }
+    setOpenDocs((prev) => {
+      const targetIndex = prev.findIndex((d) => d.id === docId);
+      if (targetIndex === -1) return prev;
+      const remaining = prev.filter((d) => d.id !== docId);
+
+      // If active doc was closed, pick adjacent tab
+      if (activeDocId === docId) {
+        if (remaining.length > 0) {
+          const nextIndex = Math.min(targetIndex, remaining.length - 1);
+          setActiveDocId(remaining[nextIndex].id);
+        } else {
+          setActiveDocId(null);
+          setActiveTab('recent');
+        }
+      }
+      return remaining;
+    });
+  }, [activeDocId, setActiveTab]);
+
+  // Open New Tab
+  const handleNewTab = useCallback(() => {
+    handleTriggerOpenFile();
+  }, [handleTriggerOpenFile]);
+
   // Re-open recent document
   const handleOpenRecentDoc = useCallback((doc: LoadedPDF) => {
-    setActiveDoc(doc);
-    setActiveTab('viewer');
-  }, []);
+    handleSelectTabDoc(doc);
+  }, [handleSelectTabDoc]);
 
   // Remove document from recent list
   const handleRemoveRecentDoc = useCallback((id: string, e: React.MouseEvent) => {
@@ -156,30 +221,30 @@ export default function WorkspacePage({
       if (target) {
         try {
           URL.revokeObjectURL(target.blobUrl);
-        } catch {
-          /* ignore */
-        }
+        } catch {}
       }
       return prev.filter((d) => d.id !== id);
     });
 
-    if (activeDoc?.id === id) {
-      setActiveDoc(null);
-    }
-  }, [activeDoc]);
+    handleCloseTabDoc(id);
+  }, [handleCloseTabDoc]);
 
   // Close active document in viewer
   const handleCloseViewer = useCallback(() => {
-    setActiveDoc(null);
-    setActiveTab('recent');
-  }, []);
+    if (activeDoc) {
+      handleCloseTabDoc(activeDoc.id);
+    } else {
+      setActiveTab('recent');
+    }
+  }, [activeDoc, handleCloseTabDoc, setActiveTab]);
 
   // Callback to register and view newly generated/modified tool documents
   const handleRegisterAndOpenDoc = useCallback((generatedDoc: LoadedPDF) => {
-    setActiveDoc(generatedDoc);
+    setOpenDocs((prev) => [...prev.filter((d) => d.id !== generatedDoc.id), generatedDoc]);
     setRecentDocs((prev) => [generatedDoc, ...prev.filter((d) => d.id !== generatedDoc.id)]);
+    setActiveDocId(generatedDoc.id);
     setActiveTab('viewer');
-  }, []);
+  }, [setActiveTab]);
 
   return (
     <div 
@@ -188,11 +253,12 @@ export default function WorkspacePage({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Hidden Native File Input */}
+      {/* Hidden Native File Input with Multiple Selection */}
       <input
         ref={fileInputRef}
         type="file"
         accept="application/pdf"
+        multiple
         onChange={handleFileChange}
         className="hidden"
       />
@@ -240,7 +306,7 @@ export default function WorkspacePage({
               {NAV_ITEMS.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
-                const count = item.id === 'recent' ? recentDocs.length : undefined;
+                const count = item.id === 'recent' ? recentDocs.length : item.id === 'viewer' ? openDocs.length : undefined;
 
                 return (
                   <button
@@ -326,10 +392,10 @@ export default function WorkspacePage({
               <UploadCloud className="h-8 w-8" />
             </div>
             <p className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-              Drop PDF file to open
+              Drop PDF file(s) to open as tabs
             </p>
             <p className="text-xs text-zinc-500 font-mono mt-1">
-              In-Memory Local Processing
+              In-Memory Local Processing • Multi-Tab View
             </p>
           </div>
         )}
@@ -370,9 +436,11 @@ export default function WorkspacePage({
               <PDFViewer 
                 key={activeDoc.id} 
                 doc={activeDoc} 
-                allDocs={recentDocs}
+                allDocs={openDocs}
                 onClose={handleCloseViewer} 
-                onSelectDoc={(d) => setActiveDoc(d)}
+                onSelectDoc={handleSelectTabDoc}
+                onCloseDoc={handleCloseTabDoc}
+                onNewTab={handleNewTab}
                 onBackToTools={() => setActiveTab('recent')}
                 onOpenDocument={handleTriggerOpenFile}
                 onOpenOrganizer={() => setActiveTab('organizer')}
@@ -384,7 +452,7 @@ export default function WorkspacePage({
               <EmptyState
                 icon={FolderOpen}
                 title="Select a PDF to view"
-                description="Click to open file manager or drag and drop any PDF document anywhere into the workspace."
+                description="Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace."
                 actionLabel="Browse Local Files"
                 onAction={handleTriggerOpenFile}
               />
@@ -396,8 +464,7 @@ export default function WorkspacePage({
                 key={activeDoc.id}
                 doc={activeDoc}
                 onSaveModifiedDoc={(updatedDoc) => {
-                  setActiveDoc(updatedDoc);
-                  setRecentDocs((prev) => [updatedDoc, ...prev.filter((d) => d.id !== updatedDoc.id)]);
+                  handleRegisterAndOpenDoc(updatedDoc);
                 }}
                 onOpenInViewer={() => setActiveTab('viewer')}
               />
