@@ -400,15 +400,15 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     >
       
       {/* 1. Control & Action Toolbar */}
-      <div className="h-14 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0 z-10">
+      <div className="h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0 z-10">
         
         {/* Left: Title & Selection Stats */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center flex-shrink-0 shadow-sm">
-            <Layers className="h-4 w-4" />
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center flex-shrink-0 shadow-xs">
+            <Layers className="h-3.5 w-3.5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Page Organizer</h2>
               <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface border border-border text-zinc-500">
                 {pages.length} Pages

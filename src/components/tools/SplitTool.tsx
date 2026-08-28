@@ -196,10 +196,10 @@ export default function SplitTool({ initialDoc, onOpenExtractedDoc }: SplitToolP
       />
 
       {/* Top Toolbar */}
-      <div className="h-14 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-6 flex items-center justify-between gap-4 flex-shrink-0">
-        <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-sm">
-            <Scissors className="h-4 w-4" />
+      <div className="h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
+            <Scissors className="h-3.5 w-3.5" />
           </div>
           <div>
             <h2 className="text-xs font-bold text-zinc-900 dark:text-zinc-100">Split & Extract Pages</h2>
