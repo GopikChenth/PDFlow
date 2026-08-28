@@ -23,6 +23,7 @@ interface TitleBarProps {
   onOpenDocument?: () => void;
   onSelectTab?: (tab: string) => void;
   onReturnToCover?: () => void;
+  onOpenComparison?: () => void;
   onToggleFullscreen?: () => void;
 }
 
@@ -34,6 +35,7 @@ export default function TitleBar({
   onOpenDocument,
   onSelectTab,
   onReturnToCover,
+  onOpenComparison,
   onToggleFullscreen,
 }: TitleBarProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -425,6 +427,14 @@ export default function TitleBar({
                 </div>
               </div>
               <div className="my-1 border-t border-border" />
+              {onOpenComparison && (
+                <button
+                  onClick={() => handleAction(onOpenComparison)}
+                  className="w-full flex items-center justify-between px-3.5 py-1.5 hover:bg-accent hover:text-white text-zinc-700 dark:text-zinc-300 transition-colors text-left font-sans"
+                >
+                  <span>Acrobat & Open-Source Benchmark</span>
+                </button>
+              )}
               <button
                 onClick={() => handleAction(onReturnToCover || (() => {}))}
                 className="w-full flex items-center justify-between px-3.5 py-1.5 hover:bg-accent hover:text-white text-zinc-700 dark:text-zinc-300 transition-colors text-left font-sans"

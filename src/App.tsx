@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { PageView } from './types';
 import FirstPage from './pages/FirstPage';
 import WorkspacePage from './pages/WorkspacePage';
+import ComparisonPage from './pages/comparison/ComparisonPage';
 import TitleBar from './components/TitleBar';
 
 export default function App() {
@@ -49,6 +50,10 @@ export default function App() {
     setCurrentView('firstPage');
   }, []);
 
+  const handleOpenComparison = useCallback(() => {
+    setCurrentView('comparison');
+  }, []);
+
   const handleSelectTab = useCallback((tab: string) => {
     setActiveTab(tab);
     setCurrentView('workspace');
@@ -74,7 +79,7 @@ export default function App() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
-        setCurrentView((prev) => (prev === 'firstPage' ? 'workspace' : 'firstPage'));
+        setCurrentView((prev) => (prev === 'workspace' ? 'firstPage' : 'workspace'));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -93,6 +98,7 @@ export default function App() {
         onOpenDocument={handleOpenDocument}
         onSelectTab={handleSelectTab}
         onReturnToCover={handleReturnToCover}
+        onOpenComparison={handleOpenComparison}
         onToggleFullscreen={handleToggleFullscreen}
       />
 
@@ -101,6 +107,14 @@ export default function App() {
         {currentView === 'firstPage' ? (
           <FirstPage
             onEnterWorkspace={handleEnterWorkspace}
+            onOpenComparison={handleOpenComparison}
+            darkMode={darkMode}
+            onToggleDarkMode={handleToggleDarkMode}
+          />
+        ) : currentView === 'comparison' ? (
+          <ComparisonPage
+            onEnterWorkspace={handleEnterWorkspace}
+            onReturnToCover={handleReturnToCover}
             darkMode={darkMode}
             onToggleDarkMode={handleToggleDarkMode}
           />

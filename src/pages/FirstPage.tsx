@@ -8,11 +8,12 @@ import PaperStack from '../components/PaperStack';
 
 interface FirstPageProps {
   onEnterWorkspace: () => void;
+  onOpenComparison?: () => void;
   darkMode: boolean;
   onToggleDarkMode: () => void;
 }
 
-export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode }: FirstPageProps) {
+export default function FirstPage({ onEnterWorkspace, onOpenComparison, darkMode, onToggleDarkMode }: FirstPageProps) {
   return (
     <div className="relative w-full h-full min-h-full overflow-y-auto bg-background text-zinc-800 dark:text-zinc-200 flex flex-col justify-between overflow-x-hidden selection:bg-accent selection:text-white transition-colors duration-300">
       
@@ -47,6 +48,15 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
 
         {/* Header Right Utilities */}
         <div className="flex items-center gap-3">
+          {onOpenComparison && (
+            <button
+              onClick={onOpenComparison}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-border hover:bg-card text-xs font-semibold text-zinc-700 dark:text-zinc-300 transition-colors shadow-xs"
+            >
+              <span>vs Acrobat Benchmark</span>
+            </button>
+          )}
+
           {/* Theme Toggle */}
           <button
             onClick={onToggleDarkMode}
@@ -98,6 +108,15 @@ export default function FirstPage({ onEnterWorkspace, darkMode, onToggleDarkMode
                 ⌘↵
               </span>
             </button>
+
+            {onOpenComparison && (
+              <button
+                onClick={onOpenComparison}
+                className="flex items-center gap-2 px-5 py-3.5 rounded-xl bg-surface border border-border hover:bg-card text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-sm"
+              >
+                <span>vs Acrobat Comparison</span>
+              </button>
+            )}
           </div>
 
         </div>

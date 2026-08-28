@@ -1,6 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageView = 'firstPage' | 'workspace';
+export type PageView = 'firstPage' | 'workspace' | 'comparison';
 
 export interface DocumentSheet {
   id: string;
