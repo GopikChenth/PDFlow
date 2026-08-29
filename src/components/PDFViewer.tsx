@@ -1061,7 +1061,7 @@ export default function PDFViewer({
       }`}
     >
       {/* Multi-Document Google Chrome-Style Tab Bar */}
-      {allDocs && allDocs.length > 0 && onSelectDoc && (
+      {allDocs && allDocs.length > 0 && onSelectDoc ? (
         <DocumentTabBar
           docs={allDocs}
           activeDocId={doc.id}
@@ -1069,7 +1069,7 @@ export default function PDFViewer({
           onCloseDoc={onCloseDoc || ((_id) => onClose?.())}
           onNewTab={onNewTab || onOpenDocument || (() => {})}
         />
-      )}
+      ) : null}
 
       {/* 1. Integrated Full-Featured Clean App Toolbar */}
       <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
@@ -1474,7 +1474,7 @@ export default function PDFViewer({
       />
 
       {/* 8. Sticky Note & Voice Note Modal */}
-      {activeStickyModalAnn && (
+      {activeStickyModalAnn ? (
         <StickyNoteModal
           annotation={activeStickyModalAnn}
           isOpen={true}
@@ -1482,7 +1482,7 @@ export default function PDFViewer({
           onUpdateAnnotation={handleUpdateAnnotation}
           onDeleteAnnotation={handleDeleteAnnotation}
         />
-      )}
+      ) : null}
 
     </div>
   );

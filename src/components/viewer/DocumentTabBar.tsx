@@ -10,6 +10,78 @@ interface DocumentTabBarProps {
   onNewTab: () => void;
 }
 
+interface DocumentTabItemProps {
+  doc: LoadedPDF;
+  isActive: boolean;
+  onSelectDoc: (doc: LoadedPDF) => void;
+  onCloseDoc: (docId: string, e?: React.MouseEvent) => void;
+  tabRef: React.RefObject<HTMLDivElement | null> | null;
+}
+
+const DocumentTabItem = React.memo(function DocumentTabItem({
+  doc,
+  isActive,
+  onSelectDoc,
+  onCloseDoc,
+  tabRef,
+}: DocumentTabItemProps) {
+  return (
+    <div
+      ref={tabRef as any}
+      onClick={() => onSelectDoc(doc)}
+      onAuxClick={(e) => {
+        // Middle-click closes the tab (classic browser behavior)
+        if (e.button === 1) {
+          e.preventDefault();
+          e.stopPropagation();
+          onCloseDoc(doc.id, e);
+        }
+      }}
+      title={`${doc.name} (${doc.size}) • Middle-click or click × to close`}
+      className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-t-xl text-xs cursor-pointer transition-all border-t border-x flex-shrink-0 max-w-[220px] min-w-[120px] ${
+        isActive
+          ? 'bg-card text-zinc-900 dark:text-zinc-100 font-semibold border-border border-b-0 shadow-xs z-10'
+          : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
+      }`}
+    >
+      {/* Active Indicator Accent Line */}
+      {isActive ? (
+        <div className="absolute top-0 left-3 right-3 h-[2px] bg-accent rounded-full" />
+      ) : null}
+
+      {/* Document Icon */}
+      <div className={`h-4 w-4 flex-shrink-0 flex items-center justify-center rounded transition-colors ${
+        isActive ? 'text-accent' : 'text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
+      }`}>
+        <FileText className="h-3.5 w-3.5" />
+      </div>
+
+      {/* Document Name */}
+      <span className="truncate flex-1 text-[11px]">
+        {doc.name}
+      </span>
+
+      {/* Close Tab Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCloseDoc(doc.id, e);
+        }}
+        title="Close Tab (⌘W / Ctrl+W)"
+        aria-label={`Close ${doc.name}`}
+        className={`h-4 w-4 rounded-full flex items-center justify-center transition-all ${
+          isActive
+            ? 'opacity-70 hover:opacity-100 hover:bg-surface text-zinc-500 hover:text-rose-500'
+            : 'opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-surface text-zinc-400 hover:text-rose-500'
+        }`}
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </div>
+  );
+});
+
 export default function DocumentTabBar({
   docs,
   activeDocId,
@@ -43,62 +115,15 @@ export default function DocumentTabBar({
       >
         {docs.map((doc) => {
           const isActive = doc.id === activeDocId;
-
           return (
-            <div
+            <DocumentTabItem
               key={doc.id}
-              ref={isActive ? activeTabRef : null}
-              onClick={() => onSelectDoc(doc)}
-              onAuxClick={(e) => {
-                // Middle-click closes the tab (classic browser behavior)
-                if (e.button === 1) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onCloseDoc(doc.id, e);
-                }
-              }}
-              title={`${doc.name} (${doc.size}) • Middle-click or click × to close`}
-              className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-t-xl text-xs cursor-pointer transition-all border-t border-x flex-shrink-0 max-w-[220px] min-w-[120px] ${
-                isActive
-                  ? 'bg-card text-zinc-900 dark:text-zinc-100 font-semibold border-border border-b-0 shadow-xs z-10'
-                  : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
-              }`}
-            >
-              {/* Active Indicator Accent Line */}
-              {isActive && (
-                <div className="absolute top-0 left-3 right-3 h-[2px] bg-accent rounded-full" />
-              )}
-
-              {/* Document Icon */}
-              <div className={`h-4 w-4 flex-shrink-0 flex items-center justify-center rounded transition-colors ${
-                isActive ? 'text-accent' : 'text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300'
-              }`}>
-                <FileText className="h-3.5 w-3.5" />
-              </div>
-
-              {/* Document Name */}
-              <span className="truncate flex-1 text-[11px]">
-                {doc.name}
-              </span>
-
-              {/* Close Tab Button */}
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onCloseDoc(doc.id, e);
-                }}
-                title="Close Tab (⌘W / Ctrl+W)"
-                aria-label={`Close ${doc.name}`}
-                className={`h-4 w-4 rounded-full flex items-center justify-center transition-all ${
-                  isActive
-                    ? 'opacity-70 hover:opacity-100 hover:bg-surface text-zinc-500 hover:text-rose-500'
-                    : 'opacity-0 group-hover:opacity-70 hover:!opacity-100 hover:bg-surface text-zinc-400 hover:text-rose-500'
-                }`}
-              >
-                <X className="h-3 w-3" />
-              </button>
-            </div>
+              doc={doc}
+              isActive={isActive}
+              onSelectDoc={onSelectDoc}
+              onCloseDoc={onCloseDoc}
+              tabRef={isActive ? activeTabRef : null}
+            />
           );
         })}
 
@@ -115,13 +140,13 @@ export default function DocumentTabBar({
       </div>
 
       {/* Tab count indicator when 3+ tabs are open */}
-      {docs.length >= 3 && (
+      {docs.length >= 3 ? (
         <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-zinc-400 pb-1.5 px-2 flex-shrink-0">
           <span className="px-1.5 py-0.5 rounded bg-surface border border-border">
             {docs.length} tabs
           </span>
         </div>
-      )}
+      ) : null}
 
     </div>
   );
