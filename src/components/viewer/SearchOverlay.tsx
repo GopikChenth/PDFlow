@@ -225,12 +225,12 @@ export default function SearchOverlay({
       </div>
 
       {/* Regex Syntax Error Banner */}
-      {regexError && (
+      {regexError ? (
         <div className="flex items-center gap-1.5 px-2 py-1 bg-rose-500/10 border border-rose-500/30 rounded text-[10px] font-mono text-rose-600 dark:text-rose-400">
           <AlertCircle className="h-3 w-3 flex-shrink-0" />
           <span className="truncate">{regexError}</span>
         </div>
-      )}
+      ) : null}
 
     </div>
   );

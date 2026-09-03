@@ -269,8 +269,6 @@ interface ViewerNavSidebarProps {
   onSelectMatch: (pageNum: number, matchIndex: number, docId?: string) => void;
 
   // Workspace Actions
-  onBackToTools?: () => void;
-  onOpenDocument?: () => void;
   onOpenOrganizer?: () => void;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
@@ -281,9 +279,9 @@ export default function ViewerNavSidebar({
   isOpen,
   onClose,
   activeTab,
-  onTabChange: _onTabChange,
-  docName: _docName,
-  docSize: _docSize,
+  onTabChange,
+  docName,
+  docSize,
   pdfDoc,
   rotation = 0,
   totalPages,
@@ -304,8 +302,6 @@ export default function ViewerNavSidebar({
   multiDocResults,
   isMultiDocSearch,
   onSelectMatch,
-  onBackToTools: _onBackToTools,
-  onOpenDocument: _onOpenDocument,
   onOpenOrganizer,
   darkMode,
   onToggleDarkMode,
@@ -443,57 +439,159 @@ export default function ViewerNavSidebar({
         }`} />
       </div>
       
-      {/* 1. Sleek Fixed Header Bar */}
-      <div className="px-3.5 py-2.5 border-b border-border flex items-center justify-between bg-card/40 dark:bg-card/40 flex-shrink-0">
-        <span className="text-xs font-semibold text-zinc-700 dark:text-zinc-300">
-          Pages <span className="text-zinc-400 font-mono text-[11px] font-normal tabular-nums">({totalPages})</span>
-        </span>
-        <div className="flex items-center gap-1.5">
-          <div className="flex items-center gap-0.5 bg-card/90 dark:bg-card/90 border border-border rounded-lg p-0.5 shadow-2xs">
-            <button
-              type="button"
-              onClick={() => setThumbnailColumns('1')}
-              title="Single Column View (1 per row)"
-              aria-label="Single column view"
-              className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
-                thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-              }`}
-            >
-              <Columns className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => setThumbnailColumns('2')}
-              title="2-Column Grid View"
-              aria-label="Two column grid view"
-              className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
-                thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
-              }`}
-            >
-              <Grid className="h-3.5 w-3.5" aria-hidden="true" />
-            </button>
+      {/* 1. Sleek Fixed Header Bar & Navigation Strip */}
+      <div className="border-b border-border bg-card/60 dark:bg-card/60 flex-shrink-0 flex flex-col select-none">
+        {/* Document Info Row */}
+        <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/50">
+          <div className="min-w-0 pr-2">
+            <h4 className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 truncate" title={docName}>
+              {docName || 'Document'}
+            </h4>
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400 mt-0.5">
+              <span>{totalPages} {totalPages === 1 ? 'page' : 'pages'}</span>
+              {docSize ? (
+                <>
+                  <span>•</span>
+                  <span>{docSize}</span>
+                </>
+              ) : null}
+            </div>
           </div>
 
-          {/* Hide Sidebar Button */}
-          {onClose && (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {activeTab === 'thumbnails' ? (
+              <div className="flex items-center gap-0.5 bg-card/90 dark:bg-card/90 border border-border rounded-lg p-0.5 shadow-2xs">
+                <button
+                  type="button"
+                  onClick={() => setThumbnailColumns('1')}
+                  title="Single Column View (1 per row)"
+                  aria-label="Single column view"
+                  className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
+                    thumbnailColumns === '1' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <Columns className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setThumbnailColumns('2')}
+                  title="2-Column Grid View"
+                  aria-label="Two column grid view"
+                  className={`p-1 rounded-md transition-colors focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500 ${
+                    thumbnailColumns === '2' ? 'bg-surface text-accent font-bold shadow-2xs' : 'text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200'
+                  }`}
+                >
+                  <Grid className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
+              </div>
+            ) : null}
+
+            {/* Hide Sidebar Button */}
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                title="Hide Sidebar (Ctrl+B)"
+                aria-label="Hide sidebar"
+                className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              >
+                <PanelLeftClose className="h-3.5 w-3.5" aria-hidden="true" />
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {/* 2. Navigation Tab Switcher Strip */}
+        <div className="flex items-center justify-between px-2 py-1.5 bg-surface/60 dark:bg-surface/40 gap-1">
+          <button
+            type="button"
+            onClick={() => onTabChange?.('thumbnails')}
+            title="Page Thumbnails"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+              activeTab === 'thumbnails'
+                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <Grid className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Pages</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onTabChange?.('outline')}
+            title="Document Outline / Table of Contents"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+              activeTab === 'outline'
+                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <ListTree className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Outline</span>
+            {outline && outline.length > 0 ? (
+              <span className="text-[9px] font-mono opacity-70">({outline.length})</span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onTabChange?.('bookmarks')}
+            title="Bookmarks"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+              activeTab === 'bookmarks'
+                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <Bookmark className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Marks</span>
+            {bookmarks && bookmarks.length > 0 ? (
+              <span className="text-[9px] font-mono opacity-70">({bookmarks.length})</span>
+            ) : null}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onTabChange?.('annotations')}
+            title="Annotations & Comments"
+            className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+              activeTab === 'annotations'
+                ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+            }`}
+          >
+            <MessageSquare className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Markups</span>
+            {annotations && annotations.length > 0 ? (
+              <span className="text-[9px] font-mono opacity-70">({annotations.length})</span>
+            ) : null}
+          </button>
+
+          {attachments && attachments.length > 0 ? (
             <button
               type="button"
-              onClick={onClose}
-              title="Hide Sidebar (Ctrl+B)"
-              aria-label="Hide sidebar"
-              className="p-1 rounded-md border border-border/70 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 hover:bg-card transition-colors shadow-2xs cursor-pointer focus-visible:outline-none focus-visible:ring-1.5 focus-visible:ring-blue-500"
+              onClick={() => onTabChange?.('attachments')}
+              title="Embedded Attachments"
+              className={`flex-1 flex items-center justify-center gap-1 py-1 rounded-md text-[11px] font-medium transition-all ${
+                activeTab === 'attachments'
+                  ? 'bg-card text-accent font-semibold shadow-2xs border border-border/70'
+                  : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
+              }`}
             >
-              <PanelLeftClose className="h-3.5 w-3.5" aria-hidden="true" />
+              <Paperclip className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Files</span>
+              <span className="text-[9px] font-mono opacity-70">({attachments.length})</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 
-      {/* 2. Scrollable Thumbnails Content Area */}
+      {/* 3. Scrollable Content Area */}
       <div className="flex-1 overflow-y-auto p-3 overscroll-contain">
         
         {/* TAB 1: THUMBNAILS (PAGES) */}
-        {activeTab === 'thumbnails' && (
+        {activeTab === 'thumbnails' ? (
           <div className={`grid gap-3.5 ${thumbnailColumns === '2' ? 'grid-cols-2' : 'grid-cols-1'}`}>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
               <ThumbnailCard
@@ -508,10 +606,10 @@ export default function ViewerNavSidebar({
               />
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* TAB 2: DOCUMENT OUTLINE (TOC) */}
-        {activeTab === 'outline' && (
+        {activeTab === 'outline' ? (
           <div className="flex flex-col gap-1">
             {outline.length === 0 ? (
               <div className="py-12 px-4 text-center">
@@ -523,10 +621,10 @@ export default function ViewerNavSidebar({
               outline.map((node, idx) => renderOutlineNode(node, `${idx}`))
             )}
           </div>
-        )}
+        ) : null}
 
         {/* TAB 3: ANNOTATIONS & THREADED COMMENTS */}
-        {activeTab === 'annotations' && (
+        {activeTab === 'annotations' ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between text-xs font-mono text-zinc-400 mb-1">
               <span>{annotations.length} Annotations</span>
@@ -591,10 +689,10 @@ export default function ViewerNavSidebar({
               ))
             )}
           </div>
-        )}
+        ) : null}
 
         {/* TAB 4: BOOKMARKS */}
-        {activeTab === 'bookmarks' && (
+        {activeTab === 'bookmarks' ? (
           <div className="flex flex-col gap-3">
             
             {/* Add Bookmark Action */}
@@ -695,10 +793,10 @@ export default function ViewerNavSidebar({
             )}
 
           </div>
-        )}
+        ) : null}
 
         {/* TAB 5: ATTACHMENTS */}
-        {activeTab === 'attachments' && (
+        {activeTab === 'attachments' ? (
           <div className="flex flex-col gap-2">
             {attachments.length === 0 ? (
               <div className="py-12 px-4 text-center">
@@ -718,9 +816,9 @@ export default function ViewerNavSidebar({
                       <h5 className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 truncate">
                         {att.filename}
                       </h5>
-                      {att.size && (
+                      {att.size ? (
                         <p className="text-[10px] font-mono text-zinc-400">{att.size}</p>
-                      )}
+                      ) : null}
                     </div>
                   </div>
 
@@ -735,10 +833,10 @@ export default function ViewerNavSidebar({
               ))
             )}
           </div>
-        )}
+        ) : null}
 
         {/* TAB 6: SEARCH RESULTS */}
-        {activeTab === 'search' && (
+        {activeTab === 'search' ? (
           <div className="flex flex-col gap-3">
             {!searchQuery.trim() ? (
               <div className="py-12 px-4 text-center">
@@ -809,13 +907,13 @@ export default function ViewerNavSidebar({
               </div>
             )}
           </div>
-        )}
+        ) : null}
 
       </div>
 
       {/* 3. Sidebar Footer Actions */}
       <div className="p-3 border-t border-border flex flex-col gap-2 flex-shrink-0 bg-surface/40">
-        {onOpenOrganizer && (
+        {onOpenOrganizer ? (
           <button
             onClick={onOpenOrganizer}
             className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-card border border-border hover:border-accent text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-xs group"
@@ -828,10 +926,10 @@ export default function ViewerNavSidebar({
               Reorder
             </span>
           </button>
-        )}
+        ) : null}
 
         <div className="flex items-center justify-between gap-2 pt-1">
-          {onToggleDarkMode && (
+          {onToggleDarkMode ? (
             <button
               onClick={onToggleDarkMode}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono bg-card border border-border hover:bg-surface dark:hover:bg-surface transition-colors shadow-2xs"
@@ -839,9 +937,9 @@ export default function ViewerNavSidebar({
               {darkMode ? <Sun className="h-3.5 w-3.5 text-amber-400" /> : <Moon className="h-3.5 w-3.5 text-zinc-600" />}
               <span>{darkMode ? 'Light' : 'Dark'}</span>
             </button>
-          )}
+          ) : null}
 
-          {onReturnToCover && (
+          {onReturnToCover ? (
             <button
               onClick={onReturnToCover}
               className="flex items-center gap-1 text-[11px] font-mono text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors px-2 py-1 rounded hover:bg-card"
@@ -850,7 +948,7 @@ export default function ViewerNavSidebar({
               <Home className="h-3.5 w-3.5" />
               <span>Cover</span>
             </button>
-          )}
+          ) : null}
         </div>
       </div>
 

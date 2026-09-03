@@ -56,8 +56,10 @@ export default function TitleBar({
     }
   }, []);
 
-  // Close menus on outside click or Esc
+  // Close menus on outside click or Esc (registered only while a menu is open)
   useEffect(() => {
+    if (!activeMenu) return;
+
     const handleClickOutside = (e: MouseEvent) => {
       if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
         setActiveMenu(null);
@@ -74,7 +76,7 @@ export default function TitleBar({
       window.removeEventListener('mousedown', handleClickOutside);
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, []);
+  }, [activeMenu]);
 
   // Window Actions
   const handleMinimize = async () => {

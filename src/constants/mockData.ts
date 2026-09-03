@@ -7,7 +7,7 @@ import {
   Stamp, 
   Lock 
 } from 'lucide-react';
-import { DocumentSheet, NavItem, ToolItem, RecentDoc } from '../types';
+import { DocumentSheet, NavItem, ToolItem } from '../types';
 
 export const DOCUMENTS: readonly DocumentSheet[] = [
   {
@@ -80,5 +80,3 @@ export const TOOL_ITEMS: readonly ToolItem[] = [
   { id: 'watermark', label: 'Watermark', icon: Stamp },
   { id: 'protect', label: 'Protect & Unlock', icon: Lock },
 ] as const;
-
-export const RECENT_DOCS: readonly RecentDoc[] = [];

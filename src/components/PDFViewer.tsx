@@ -50,7 +50,6 @@ interface PDFViewerProps {
   onSelectDoc?: (doc: LoadedPDF) => void;
   onCloseDoc?: (docId: string, e?: React.MouseEvent) => void;
   onNewTab?: () => void;
-  onBackToTools?: () => void;
   onOpenDocument?: () => void;
   onOpenOrganizer?: () => void;
   darkMode?: boolean;
@@ -76,7 +75,6 @@ export default function PDFViewer({
   onSelectDoc,
   onCloseDoc,
   onNewTab,
-  onBackToTools,
   onOpenDocument,
   onOpenOrganizer,
   darkMode,
@@ -1328,8 +1326,6 @@ export default function PDFViewer({
                 scrollToPage(pNum);
               }
             }}
-            onBackToTools={onBackToTools}
-            onOpenDocument={onOpenDocument}
             onOpenOrganizer={onOpenOrganizer}
             darkMode={darkMode}
             onToggleDarkMode={onToggleDarkMode}

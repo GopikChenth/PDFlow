@@ -17,13 +17,24 @@ import {
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF } from '../types';
 import PDFViewer from '../components/PDFViewer';
-import PageOrganizer from '../components/PageOrganizer';
 import EmptyState from '../components/EmptyState';
-import MergeTool from '../components/tools/MergeTool';
-import SplitTool from '../components/tools/SplitTool';
-import CompressTool from '../components/tools/CompressTool';
-import WatermarkTool from '../components/tools/WatermarkTool';
-import ProtectTool from '../components/tools/ProtectTool';
+
+// Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
+const PageOrganizer = React.lazy(() => import('../components/PageOrganizer'));
+const MergeTool = React.lazy(() => import('../components/tools/MergeTool'));
+const SplitTool = React.lazy(() => import('../components/tools/SplitTool'));
+const CompressTool = React.lazy(() => import('../components/tools/CompressTool'));
+const WatermarkTool = React.lazy(() => import('../components/tools/WatermarkTool'));
+const ProtectTool = React.lazy(() => import('../components/tools/ProtectTool'));
+
+function ToolLoadingFallback() {
+  return (
+    <div className="flex-1 w-full h-full flex flex-col items-center justify-center bg-background gap-3 min-h-[300px]">
+      <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      <span className="text-xs font-mono text-zinc-400">Loading tool module...</span>
+    </div>
+  );
+}
 
 interface RecentDocCardProps {
   doc: LoadedPDF;
@@ -502,112 +513,113 @@ export default function WorkspacePage({
 
         {/* Workspace Canvas Area */}
         <div className="flex-1 overflow-hidden relative flex flex-col p-0 m-0">
-          
-          {/* TAB 1: PDF Viewer */}
-          {activeTab === 'viewer' ? (
-            activeDoc ? (
-              <PDFViewer 
-                key={activeDoc.id} 
-                doc={activeDoc} 
-                allDocs={openDocs}
-                onClose={handleCloseViewer} 
-                onSelectDoc={handleSelectTabDoc}
-                onCloseDoc={handleCloseTabDoc}
-                onNewTab={handleNewTab}
-                onBackToTools={() => setActiveTab('recent')}
-                onOpenDocument={handleTriggerOpenFile}
-                onOpenOrganizer={() => setActiveTab('organizer')}
-                darkMode={darkMode}
-                onToggleDarkMode={onToggleDarkMode}
-                onReturnToCover={onReturnToCover}
-              />
-            ) : (
-              <EmptyState
-                icon={FolderOpen}
-                title="Select a PDF to view"
-                description="Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace."
-                actionLabel="Browse Local Files"
-                onAction={handleTriggerOpenFile}
-              />
-            )
-          ) : activeTab === 'organizer' ? (
-            /* TAB 2: Page Organizer */
-            activeDoc ? (
-              <PageOrganizer
-                key={activeDoc.id}
-                doc={activeDoc}
-                onSaveModifiedDoc={(updatedDoc) => {
-                  handleRegisterAndOpenDoc(updatedDoc);
-                }}
-                onOpenInViewer={() => setActiveTab('viewer')}
-              />
-            ) : (
-              <EmptyState
-                icon={Layers}
-                title="Select a PDF to organize"
-                description="Reorder pages with drag & drop, rotate individual pages, delete unwanted sheets, or extract sections."
-                actionLabel="Browse Local Files"
-                onAction={handleTriggerOpenFile}
-              />
-            )
-          ) : activeTab === 'recent' ? (
-            /* TAB 3: Recent Documents View */
-            <div className="flex-1 overflow-auto p-8 flex flex-col">
-              {recentDocs.length === 0 ? (
+          <React.Suspense fallback={<ToolLoadingFallback />}>
+            {/* TAB 1: PDF Viewer */}
+            {activeTab === 'viewer' ? (
+              activeDoc ? (
+                <PDFViewer 
+                  key={activeDoc.id} 
+                  doc={activeDoc} 
+                  allDocs={openDocs}
+                  onClose={handleCloseViewer} 
+                  onSelectDoc={handleSelectTabDoc}
+                  onCloseDoc={handleCloseTabDoc}
+                  onNewTab={handleNewTab}
+                  onOpenDocument={handleTriggerOpenFile}
+                  onOpenOrganizer={() => setActiveTab('organizer')}
+                  darkMode={darkMode}
+                  onToggleDarkMode={onToggleDarkMode}
+                  onReturnToCover={onReturnToCover}
+                />
+              ) : (
                 <EmptyState
                   icon={FolderOpen}
-                  title="No documents open"
-                  description="Click 'Open Document' or drag and drop a PDF file anywhere into the window to begin viewing."
+                  title="Select a PDF to view"
+                  description="Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace."
                   actionLabel="Browse Local Files"
                   onAction={handleTriggerOpenFile}
                 />
+              )
+            ) : activeTab === 'organizer' ? (
+              /* TAB 2: Page Organizer */
+              activeDoc ? (
+                <PageOrganizer
+                  key={activeDoc.id}
+                  doc={activeDoc}
+                  onSaveModifiedDoc={(updatedDoc) => {
+                    handleRegisterAndOpenDoc(updatedDoc);
+                  }}
+                  onOpenInViewer={() => setActiveTab('viewer')}
+                />
               ) : (
-                <div className="max-w-4xl mx-auto w-full flex flex-col gap-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-base font-bold text-zinc-900 dark:text-zinc-100">
-                        Recent Documents in Session
-                      </h2>
-                      <p className="text-xs text-zinc-500 mt-0.5">
-                        Locally loaded PDF documents stored in-memory.
-                      </p>
+                <EmptyState
+                  icon={Layers}
+                  title="No Document Selected for Organizing"
+                  description="Open a PDF to rearrange, rotate, duplicate, or delete pages with drag-and-drop."
+                  actionLabel="Select Document"
+                  onAction={handleTriggerOpenFile}
+                />
+              )
+            ) : activeTab === 'recent' ? (
+              /* TAB 3: Recent Documents */
+              <div className="flex-1 overflow-y-auto p-6 sm:p-8 max-w-4xl mx-auto w-full">
+                {recentDocs.length === 0 ? (
+                  <div className="h-[60vh] flex items-center justify-center">
+                    <EmptyState
+                      icon={FileText}
+                      title="No recent documents yet"
+                      description="Documents opened in this session will appear here for fast access."
+                      actionLabel="Open a PDF Document"
+                      onAction={handleTriggerOpenFile}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-border pb-3">
+                      <div>
+                        <h2 className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                          Session Documents
+                        </h2>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          Locally loaded PDF documents stored in-memory.
+                        </p>
+                      </div>
+                      <span className="text-xs font-mono text-zinc-400">
+                        {recentDocs.length} {recentDocs.length === 1 ? 'Document' : 'Documents'}
+                      </span>
                     </div>
-                    <span className="text-xs font-mono text-zinc-400">
-                      {recentDocs.length} {recentDocs.length === 1 ? 'Document' : 'Documents'}
-                    </span>
-                  </div>
 
-                  <div className="flex flex-col gap-2.5">
-                    {recentDocs.map((doc) => (
-                      <RecentDocCard
-                        key={doc.id}
-                        doc={doc}
-                        isCurrentlyActive={activeDoc?.id === doc.id}
-                        onOpen={handleOpenRecentDoc}
-                        onRemove={handleRemoveRecentDoc}
-                      />
-                    ))}
+                    <div className="flex flex-col gap-2.5">
+                      {recentDocs.map((doc) => (
+                        <RecentDocCard
+                          key={doc.id}
+                          doc={doc}
+                          isCurrentlyActive={activeDoc?.id === doc.id}
+                          onOpen={handleOpenRecentDoc}
+                          onRemove={handleRemoveRecentDoc}
+                        />
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ) : activeTab === 'merge' ? (
-            /* TAB 4: Merge Tool */
-            <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
-          ) : activeTab === 'split' ? (
-            /* TAB 5: Split & Extract Tool */
-            <SplitTool initialDoc={activeDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
-          ) : activeTab === 'compress' ? (
-            /* TAB 6: Compress Tool */
-            <CompressTool initialDoc={activeDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
-          ) : activeTab === 'watermark' ? (
-            /* TAB 7: Watermark Tool */
-            <WatermarkTool initialDoc={activeDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
-          ) : activeTab === 'protect' ? (
-            /* TAB 8: Protect & Unlock Tool */
-            <ProtectTool initialDoc={activeDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
-          ) : null}
-
+                )}
+              </div>
+            ) : activeTab === 'merge' ? (
+              /* TAB 4: Merge Tool */
+              <MergeTool initialDoc={activeDoc} onOpenMergedDoc={handleRegisterAndOpenDoc} />
+            ) : activeTab === 'split' ? (
+              /* TAB 5: Split & Extract Tool */
+              <SplitTool initialDoc={activeDoc} onOpenExtractedDoc={handleRegisterAndOpenDoc} />
+            ) : activeTab === 'compress' ? (
+              /* TAB 6: Compress Tool */
+              <CompressTool initialDoc={activeDoc} onOpenCompressedDoc={handleRegisterAndOpenDoc} />
+            ) : activeTab === 'watermark' ? (
+              /* TAB 7: Watermark Tool */
+              <WatermarkTool initialDoc={activeDoc} onOpenWatermarkedDoc={handleRegisterAndOpenDoc} />
+            ) : activeTab === 'protect' ? (
+              /* TAB 8: Protect & Unlock Tool */
+              <ProtectTool initialDoc={activeDoc} onOpenProtectedDoc={handleRegisterAndOpenDoc} />
+            ) : null}
+          </React.Suspense>
         </div>
 
       </main>

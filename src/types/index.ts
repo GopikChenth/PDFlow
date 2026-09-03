@@ -14,15 +14,6 @@ export interface DocumentSheet {
   size: string;
 }
 
-export interface RecentDoc {
-  id: string;
-  title: string;
-  pages: number;
-  size: string;
-  time: string;
-  status: 'Verified' | 'Encrypted' | 'Vector' | 'Locked';
-}
-
 export interface LoadedPDF {
   id: string;
   name: string;

@@ -1,9 +1,20 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { PageView } from './types';
 import FirstPage from './pages/FirstPage';
-import WorkspacePage from './pages/WorkspacePage';
-import ComparisonPage from './pages/comparison/ComparisonPage';
 import TitleBar from './components/TitleBar';
+
+// Lazy-load non-initial viewports to reduce initial bundle and memory
+const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
+const ComparisonPage = lazy(() => import('./pages/comparison/ComparisonPage'));
+
+function PageLoadingFallback() {
+  return (
+    <div className="flex-1 w-full h-full flex flex-col items-center justify-center bg-background gap-3">
+      <div className="h-8 w-8 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+      <span className="text-xs font-mono text-zinc-400">Loading module...</span>
+    </div>
+  );
+}
 
 export default function App() {
   const [currentView, setCurrentView] = useState<PageView>('firstPage');
@@ -104,30 +115,32 @@ export default function App() {
 
       {/* Main App Viewport */}
       <div className="flex-1 overflow-hidden relative">
-        {currentView === 'firstPage' ? (
-          <FirstPage
-            onEnterWorkspace={handleEnterWorkspace}
-            onOpenComparison={handleOpenComparison}
-            darkMode={darkMode}
-            onToggleDarkMode={handleToggleDarkMode}
-          />
-        ) : currentView === 'comparison' ? (
-          <ComparisonPage
-            onEnterWorkspace={handleEnterWorkspace}
-            onReturnToCover={handleReturnToCover}
-            darkMode={darkMode}
-            onToggleDarkMode={handleToggleDarkMode}
-          />
-        ) : (
-          <WorkspacePage
-            onReturnToCover={handleReturnToCover}
-            darkMode={darkMode}
-            onToggleDarkMode={handleToggleDarkMode}
-            controlledActiveTab={activeTab}
-            onActiveTabChange={setActiveTab}
-            onActiveDocChange={setActiveDocName}
-          />
-        )}
+        <Suspense fallback={<PageLoadingFallback />}>
+          {currentView === 'firstPage' ? (
+            <FirstPage
+              onEnterWorkspace={handleEnterWorkspace}
+              onOpenComparison={handleOpenComparison}
+              darkMode={darkMode}
+              onToggleDarkMode={handleToggleDarkMode}
+            />
+          ) : currentView === 'comparison' ? (
+            <ComparisonPage
+              onEnterWorkspace={handleEnterWorkspace}
+              onReturnToCover={handleReturnToCover}
+              darkMode={darkMode}
+              onToggleDarkMode={handleToggleDarkMode}
+            />
+          ) : (
+            <WorkspacePage
+              onReturnToCover={handleReturnToCover}
+              darkMode={darkMode}
+              onToggleDarkMode={handleToggleDarkMode}
+              controlledActiveTab={activeTab}
+              onActiveTabChange={setActiveTab}
+              onActiveDocChange={setActiveDocName}
+            />
+          )}
+        </Suspense>
       </div>
 
     </div>
