@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Pause, 
@@ -13,73 +13,28 @@ import {
   Brain,
   X
 } from 'lucide-react';
+import { usePomodoro } from '../../context/PomodoroContext';
 
-export type PomodoroPhase = 'focus' | 'shortBreak' | 'longBreak';
-
-interface PomodoroSettings {
-  focusMin: number;
-  shortBreakMin: number;
-  longBreakMin: number;
-  soundEnabled: boolean;
+interface PomodoroTimerProps {
+  className?: string;
 }
 
-const DEFAULT_SETTINGS: PomodoroSettings = {
-  focusMin: 25,
-  shortBreakMin: 5,
-  longBreakMin: 15,
-  soundEnabled: true,
-};
+export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
+  const {
+    phase,
+    secondsLeft,
+    isRunning,
+    completedSessions,
+    settings,
+    toggleTimer,
+    resetTimer,
+    skipPhase,
+    switchPhase,
+    updateSettings,
+    formatTime,
+    progressPercent,
+  } = usePomodoro();
 
-// Web Audio API chime - pleasant 2-tone melodic notification
-function playGentleChime() {
-  try {
-    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioCtx) return;
-    const ctx = new AudioCtx();
-    const now = ctx.currentTime;
-
-    // First tone (E5)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(659.25, now);
-    gain1.gain.setValueAtTime(0.18, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.5);
-
-    // Second tone (A5)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sine';
-    osc2.frequency.setValueAtTime(880, now + 0.18);
-    gain2.gain.setValueAtTime(0.22, now + 0.18);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now + 0.18);
-    osc2.stop(now + 0.85);
-  } catch {
-    // Ignore audio permission or blocked errors
-  }
-}
-
-export default function PomodoroTimer() {
-  // Load persisted settings
-  const [settings, setSettings] = useState<PomodoroSettings>(() => {
-    try {
-      const saved = localStorage.getItem('pdflow_pomodoro_settings');
-      if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
-    } catch {}
-    return DEFAULT_SETTINGS;
-  });
-
-  const [phase, setPhase] = useState<PomodoroPhase>('focus');
-  const [secondsLeft, setSecondsLeft] = useState<number>(() => settings.focusMin * 60);
-  const [isRunning, setIsRunning] = useState<boolean>(false);
-  const [completedSessions, setCompletedSessions] = useState<number>(0);
   const [showPopover, setShowPopover] = useState<boolean>(false);
   const [showSettingsTab, setShowSettingsTab] = useState<boolean>(false);
 
@@ -90,60 +45,12 @@ export default function PomodoroTimer() {
 
   const popoverRef = useRef<HTMLDivElement>(null);
 
-  // Save settings when modified
-  const updateSettings = useCallback((newSettings: Partial<PomodoroSettings>) => {
-    setSettings((prev) => {
-      const updated = { ...prev, ...newSettings };
-      try {
-        localStorage.setItem('pdflow_pomodoro_settings', JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  }, []);
-
-  // Switch phase
-  const switchPhase = useCallback((targetPhase: PomodoroPhase, customTimes = settings) => {
-    setPhase(targetPhase);
-    setIsRunning(false);
-    let mins = customTimes.focusMin;
-    if (targetPhase === 'shortBreak') mins = customTimes.shortBreakMin;
-    if (targetPhase === 'longBreak') mins = customTimes.longBreakMin;
-    setSecondsLeft(mins * 60);
-  }, [settings]);
-
-  // Timer Tick
+  // Sync inputs when settings change
   useEffect(() => {
-    if (!isRunning) return;
-
-    const interval = setInterval(() => {
-      setSecondsLeft((prev) => {
-        if (prev <= 1) {
-          // Phase complete!
-          if (settings.soundEnabled) {
-            playGentleChime();
-          }
-
-          if (phase === 'focus') {
-            const nextCount = completedSessions + 1;
-            setCompletedSessions(nextCount);
-            // Long break after every 4 focus sessions
-            if (nextCount % 4 === 0) {
-              switchPhase('longBreak');
-            } else {
-              switchPhase('shortBreak');
-            }
-          } else {
-            // Return to focus after break
-            switchPhase('focus');
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isRunning, phase, settings, completedSessions, switchPhase]);
+    setCustomFocus(settings.focusMin);
+    setCustomShortBreak(settings.shortBreakMin);
+    setCustomLongBreak(settings.longBreakMin);
+  }, [settings]);
 
   // Click outside to close popover
   useEffect(() => {
@@ -156,13 +63,6 @@ export default function PomodoroTimer() {
     window.addEventListener('mousedown', handleDocClick);
     return () => window.removeEventListener('mousedown', handleDocClick);
   }, [showPopover]);
-
-  // Format MM:SS
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
 
   const handleApplyCustomIntervals = (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,7 +84,6 @@ export default function PomodoroTimer() {
     setShowSettingsTab(false);
   };
 
-  // Quick preset loader
   const handleLoadPreset = (focus: number, shortB: number, longB: number) => {
     setCustomFocus(focus);
     setCustomShortBreak(shortB);
@@ -201,17 +100,9 @@ export default function PomodoroTimer() {
     setShowSettingsTab(false);
   };
 
-  // Total seconds for progress calculation
-  const totalSeconds = (phase === 'focus' 
-    ? settings.focusMin 
-    : phase === 'shortBreak' 
-      ? settings.shortBreakMin 
-      : settings.longBreakMin) * 60;
-  const progressPercent = Math.min(100, Math.max(0, ((totalSeconds - secondsLeft) / totalSeconds) * 100));
-
   return (
-    <div className="relative flex items-center" ref={popoverRef}>
-      {/* 1. Slim Compact Study Bar Pill */}
+    <div className={`relative flex items-center select-none ${className}`} ref={popoverRef}>
+      {/* 1. Slim Compact Timer Pill */}
       <div 
         className={`h-7 px-2 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
           isRunning
@@ -251,7 +142,7 @@ export default function PomodoroTimer() {
         type="button"
         onClick={(e) => {
           e.stopPropagation();
-          setIsRunning((r) => !r);
+          toggleTimer();
         }}
         title={isRunning ? "Pause Timer" : "Start Pomodoro Timer"}
         className={`h-6 w-6 ml-1 rounded flex items-center justify-center transition-colors ${
@@ -265,7 +156,7 @@ export default function PomodoroTimer() {
 
       {/* 2. Popover Modal Dialog */}
       {showPopover && (
-        <div className="absolute top-9 left-1/2 -translate-x-1/2 z-50 w-72 p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl text-zinc-200 animate-in fade-in zoom-in-95 duration-150 select-none">
+        <div className="absolute top-9 right-0 sm:left-1/2 sm:-translate-x-1/2 z-50 w-72 p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl text-zinc-200 animate-in fade-in zoom-in-95 duration-150 select-none">
           
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
@@ -359,7 +250,7 @@ export default function PomodoroTimer() {
                 {/* Progress Bar */}
                 <div className="w-full bg-zinc-950 h-1.5 rounded-full mt-3 overflow-hidden border border-zinc-800">
                   <div 
-                    className={`h-full transition-all duration-1000 ${
+                    className={`h-full transition-all duration-300 ${
                       phase === 'focus' ? 'bg-rose-500' : 'bg-emerald-500'
                     }`}
                     style={{ width: `${progressPercent}%` }}
@@ -371,7 +262,7 @@ export default function PomodoroTimer() {
               <div className="flex items-center justify-center gap-2 mt-3">
                 <button
                   type="button"
-                  onClick={() => switchPhase(phase)}
+                  onClick={resetTimer}
                   title="Reset Timer"
                   className="h-8 w-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
                 >
@@ -380,7 +271,7 @@ export default function PomodoroTimer() {
 
                 <button
                   type="button"
-                  onClick={() => setIsRunning((r) => !r)}
+                  onClick={toggleTimer}
                   className={`h-9 px-5 rounded-xl font-semibold text-xs flex items-center gap-1.5 text-white transition-all shadow-md ${
                     isRunning 
                       ? 'bg-zinc-700 hover:bg-zinc-600' 
@@ -404,13 +295,7 @@ export default function PomodoroTimer() {
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (phase === 'focus') {
-                      switchPhase('shortBreak');
-                    } else {
-                      switchPhase('focus');
-                    }
-                  }}
+                  onClick={skipPhase}
                   title="Skip to Next Phase"
                   className="h-8 w-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
                 >

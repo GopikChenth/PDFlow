@@ -38,6 +38,7 @@ import AnnotationLayer from './viewer/AnnotationLayer';
 import StickyNoteModal from './viewer/StickyNoteModal';
 import DocumentTabBar from './viewer/DocumentTabBar';
 import MinimalStudyBar from './viewer/MinimalStudyBar';
+import PomodoroTimer from './viewer/PomodoroTimer';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -1519,6 +1520,11 @@ export default function PDFViewer({
               <span className="text-[10px] font-mono text-accent font-semibold">Save</span>
             ) : null}
           </button>
+
+          {/* Continuous Pomodoro Study Timer (Shared across normal editor and study mode) */}
+          <PomodoroTimer />
+
+          <div className="h-4 w-[1px] bg-border mx-0.5 hidden sm:block" />
 
           {/* Minimal Fullscreen Study Mode Button */}
           <button

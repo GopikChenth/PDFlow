@@ -18,6 +18,7 @@ import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
 import { LoadedPDF, PDFAnnotation } from '../types';
 import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
 import EmptyState from '../components/EmptyState';
+import { PomodoroProvider } from '../context/PomodoroContext';
 
 // Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
 const PageOrganizer = React.lazy(() => import('../components/PageOrganizer'));
@@ -346,8 +347,9 @@ export default function WorkspacePage({
   }, [setActiveTab]);
 
   return (
-    <div 
-      className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
+    <PomodoroProvider>
+      <div 
+        className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -646,6 +648,7 @@ export default function WorkspacePage({
 
       </main>
 
-    </div>
+      </div>
+    </PomodoroProvider>
   );
 }
