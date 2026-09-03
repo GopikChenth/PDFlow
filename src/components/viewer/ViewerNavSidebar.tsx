@@ -98,7 +98,9 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
               const page = await pdfDoc.getPage(pageNum);
               if (isCancelled || !canvasRef.current) return;
 
-              const unscaledVp = page.getViewport({ scale: 1.0, rotation });
+              const pageRotate = page.rotate || 0;
+              const totalRotation = (pageRotate + rotation) % 360;
+              const unscaledVp = page.getViewport({ scale: 1.0, rotation: totalRotation });
               const currentAspect = unscaledVp.width / unscaledVp.height;
 
               // 1. Native Integer-Pixel Target Width & Height (Dynamically adapts to sidebar expansion)
@@ -110,7 +112,7 @@ const ThumbnailCard: React.FC<ThumbnailCardProps> = React.memo(({
               setDimensions({ width: cssWidth, height: cssHeight });
 
               const scale = cssWidth / unscaledVp.width;
-              const viewport = page.getViewport({ scale, rotation });
+              const viewport = page.getViewport({ scale, rotation: totalRotation });
 
               const outputScale = window.devicePixelRatio || 1;
               const canvas = canvasRef.current;

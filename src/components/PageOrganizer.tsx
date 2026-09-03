@@ -130,9 +130,11 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     try {
       const page = await pdfDoc.getPage(item.originalPageNumber);
       const targetWidth = 160; // Fast lightweight thumbnail
-      const baseViewport = page.getViewport({ scale: 1.0, rotation: item.rotation });
+      const pageRotate = page.rotate || 0;
+      const totalRotation = (pageRotate + item.rotation) % 360;
+      const baseViewport = page.getViewport({ scale: 1.0, rotation: totalRotation });
       const scale = targetWidth / baseViewport.width;
-      const viewport = page.getViewport({ scale, rotation: item.rotation });
+      const viewport = page.getViewport({ scale, rotation: totalRotation });
 
       canvas.width = viewport.width;
       canvas.height = viewport.height;

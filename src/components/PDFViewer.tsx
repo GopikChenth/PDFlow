@@ -15,7 +15,8 @@ import {
   Columns,
   Eye,
   ChevronDown,
-  PanelLeftOpen
+  PanelLeftOpen,
+  GraduationCap
 } from 'lucide-react';
 import { 
   LoadedPDF, 
@@ -36,12 +37,17 @@ import FloatingAnnotationToolbar from './viewer/FloatingAnnotationToolbar';
 import AnnotationLayer from './viewer/AnnotationLayer';
 import StickyNoteModal from './viewer/StickyNoteModal';
 import DocumentTabBar from './viewer/DocumentTabBar';
-import { exportToXFDF, exportToJSON, downloadFile } from '../utils/annotationExporter';
+import MinimalStudyBar from './viewer/MinimalStudyBar';
+import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   'pdfjs-dist/build/pdf.worker.min.mjs',
   import.meta.url
 ).toString();
+
+// In-memory document and text index cache across tabs (0ms tab switching & instant multi-doc search)
+export const globalDocProxyCache = new Map<string, pdfjsLib.PDFDocumentProxy>();
+export const globalTextIndexCache = new Map<string, PageTextData[]>();
 
 interface PDFViewerProps {
   doc: LoadedPDF;
@@ -55,6 +61,11 @@ interface PDFViewerProps {
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
   onReturnToCover?: () => void;
+  initialPage?: number;
+  initialScale?: number;
+  initialRotation?: number;
+  initialAnnotations?: PDFAnnotation[];
+  onSaveSessionState?: (state: { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }) => void;
 }
 
 interface PageInfo {
@@ -80,15 +91,21 @@ export default function PDFViewer({
   darkMode,
   onToggleDarkMode,
   onReturnToCover,
+  initialPage,
+  initialScale,
+  initialRotation,
+  initialAnnotations,
+  onSaveSessionState,
 }: PDFViewerProps) {
   // Core Document State
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
   const [pages, setPages] = useState<PageInfo[]>([]);
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [scale, setScale] = useState<number>(1.0);
-  const [rotation, setRotation] = useState<number>(0);
+  const [currentPage, setCurrentPage] = useState<number>(() => initialPage || 1);
+  const [scale, setScale] = useState<number>(() => initialScale || 1.0);
+  const [rotation, setRotation] = useState<number>(() => initialRotation || 0);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isBakingAnnotations, setIsBakingAnnotations] = useState<boolean>(false);
 
   // 1. Page Layout Controls
   const [layoutMode, setLayoutMode] = useState<PageLayoutMode>('continuous');
@@ -98,6 +115,10 @@ export default function PDFViewer({
   // 2. Display & Readability Modes
   const [focusMode, setFocusMode] = useState<boolean>(false); // Zen / background dimming mode
   const [isReflowOpen, setIsReflowOpen] = useState<boolean>(false);
+  const [isStudyMode, setIsStudyMode] = useState<boolean>(false);
+  const [studyTint, setStudyTint] = useState<'default' | 'sepia' | 'dark'>('default');
+  const [isStudyBarPinned, setIsStudyBarPinned] = useState<boolean>(true);
+  const [isStudyBarHovered, setIsStudyBarHovered] = useState<boolean>(false);
 
   // 3. Navigation Panes (Left Drawer)
   const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(() => {
@@ -167,17 +188,25 @@ export default function PDFViewer({
   const activeRenderTasksRef = useRef<Map<number, any>>(new Map());
   const activeTextTasksRef = useRef<Map<number, any>>(new Map());
 
-  // Load Annotations & Bookmarks from localStorage on document change
+  // Load Annotations & Bookmarks
   useEffect(() => {
-    try {
-      const savedAnn = localStorage.getItem(`pdf_annotations_${doc.name}`);
-      if (savedAnn) {
-        const parsed = JSON.parse(savedAnn);
-        setAnnotations(parsed.map((a: any) => ({ ...a, createdAt: new Date(a.createdAt) })));
-      } else {
+    if (initialAnnotations && initialAnnotations.length > 0) {
+      setAnnotations(initialAnnotations);
+    } else {
+      try {
+        const savedAnn = localStorage.getItem(`pdf_annotations_${doc.name}`);
+        if (savedAnn) {
+          const parsed = JSON.parse(savedAnn);
+          setAnnotations(parsed.map((a: any) => ({ ...a, createdAt: new Date(a.createdAt) })));
+        } else {
+          setAnnotations([]);
+        }
+      } catch {
         setAnnotations([]);
       }
+    }
 
+    try {
       const savedBm = localStorage.getItem(`pdf_bookmarks_${doc.name}`);
       if (savedBm) {
         const parsedBm = JSON.parse(savedBm);
@@ -186,10 +215,21 @@ export default function PDFViewer({
         setBookmarks([]);
       }
     } catch {
-      setAnnotations([]);
       setBookmarks([]);
     }
-  }, [doc.name]);
+  }, [doc.name, initialAnnotations]);
+
+  // Session state sync ref to preserve current tab state when switching
+  const sessionSyncRef = useRef({ page: currentPage, scale, rotation, annotations });
+  useEffect(() => {
+    sessionSyncRef.current = { page: currentPage, scale, rotation, annotations };
+  }, [currentPage, scale, rotation, annotations]);
+
+  useEffect(() => {
+    return () => {
+      onSaveSessionState?.(sessionSyncRef.current);
+    };
+  }, [onSaveSessionState]);
 
   // Persist Annotations Helper
   const persistAnnotations = useCallback((newAnnotations: PDFAnnotation[]) => {
@@ -298,15 +338,10 @@ export default function PDFViewer({
     });
   }, [doc.name]);
 
-  // 1. Load PDF Document, Outline, Attachments & Extract Page Texts
+  // 1. Load PDF Document, Outline, Attachments & Extract Page Texts (with Global Proxy & Text Caching)
   useEffect(() => {
     let isCancelled = false;
     setLoading(true);
-    setPages([]);
-    setPagesText([]);
-    setCurrentPage(1);
-    setScale(1.0);
-    setRotation(0);
     renderedPagesRef.current.clear();
 
     activeRenderTasksRef.current.forEach((task) => {
@@ -315,48 +350,78 @@ export default function PDFViewer({
     activeRenderTasksRef.current.clear();
     canvasMapRef.current.clear();
 
-    const loadingTask = pdfjsLib.getDocument({
-      url: doc.blobUrl,
-      cMapUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/cmaps/',
-      cMapPacked: true,
-      standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/standard_fonts/',
-      enableXfa: true,
-    });
-    loadingTask.promise.then(async (loadedPdf) => {
-      if (isCancelled) {
-        try { loadedPdf.destroy(); } catch {}
-        return;
-      }
+    const initializeDocument = async (loadedPdf: pdfjsLib.PDFDocumentProxy) => {
+      if (isCancelled) return;
       setPdfDoc(loadedPdf);
 
-      // Extract Geometry & Text for each page
-      const pageList: PageInfo[] = [];
-      const textList: PageTextData[] = [];
+      // Fast-path: If text index is already in memory, use it immediately
+      if (globalTextIndexCache.has(doc.id)) {
+        setPagesText(globalTextIndexCache.get(doc.id)!);
+      }
 
-      for (let i = 1; i <= loadedPdf.numPages; i++) {
-        try {
-          const page = await loadedPdf.getPage(i);
-          const vp = page.getViewport({ scale: 1.0, rotation: 0 });
+      // Step A: Fast Page 1 display - get Page 1 geometry with intrinsic rotation
+      const pageList: PageInfo[] = [];
+      try {
+        const firstPage = await loadedPdf.getPage(1);
+        const firstRot = firstPage.rotate || 0;
+        const firstVp = firstPage.getViewport({ scale: 1.0, rotation: firstRot });
+        for (let i = 1; i <= loadedPdf.numPages; i++) {
           pageList.push({
             pageNum: i,
-            width: vp.width,
-            height: vp.height,
+            width: firstVp.width,
+            height: firstVp.height,
           });
-
-          // Text content extraction for Search & Reflow
-          const textContent = await page.getTextContent();
-          const pageString = textContent.items.map((item: any) => item.str).join(' ');
-          textList.push({ pageNum: i, text: pageString });
-        } catch {
+        }
+      } catch {
+        for (let i = 1; i <= loadedPdf.numPages; i++) {
           pageList.push({ pageNum: i, width: 612, height: 792 });
-          textList.push({ pageNum: i, text: '' });
         }
       }
 
-      // Extract Outline (Table of Contents)
+      if (isCancelled) return;
+      setPages([...pageList]);
+      setLoading(false);
+
+      if (initialPage && initialPage > 1) {
+        setTimeout(() => {
+          scrollToPage(initialPage);
+        }, 100);
+      }
+
+      // Step B: Asynchronous background extraction of full geometry, text index, outline & attachments
+      const textList: PageTextData[] = [];
+      for (let i = 1; i <= loadedPdf.numPages; i++) {
+        if (isCancelled) return;
+        try {
+          const page = await loadedPdf.getPage(i);
+          const pageRot = page.rotate || 0;
+          const vp = page.getViewport({ scale: 1.0, rotation: pageRot });
+          pageList[i - 1] = { pageNum: i, width: vp.width, height: vp.height };
+
+          if (!globalTextIndexCache.has(doc.id)) {
+            const textContent = await page.getTextContent();
+            const pageString = textContent.items.map((item: any) => item.str).join(' ');
+            textList.push({ pageNum: i, text: pageString });
+          }
+        } catch {
+          if (!globalTextIndexCache.has(doc.id)) {
+            textList.push({ pageNum: i, text: '' });
+          }
+        }
+      }
+
+      if (!isCancelled) {
+        setPages([...pageList]);
+        if (!globalTextIndexCache.has(doc.id)) {
+          globalTextIndexCache.set(doc.id, textList);
+          setPagesText(textList);
+        }
+      }
+
+      // Extract Outline
       try {
         const rawOutline = await loadedPdf.getOutline();
-        if (rawOutline && rawOutline.length > 0) {
+        if (rawOutline && rawOutline.length > 0 && !isCancelled) {
           const parseOutlineNodes = (items: any[]): PDFOutlineNode[] => {
             return items.map((item) => ({
               title: item.title,
@@ -365,17 +430,17 @@ export default function PDFViewer({
             }));
           };
           setOutline(parseOutlineNodes(rawOutline));
-        } else {
+        } else if (!isCancelled) {
           setOutline([]);
         }
       } catch {
-        setOutline([]);
+        if (!isCancelled) setOutline([]);
       }
 
       // Extract Attachments
       try {
         const rawAttachments = await loadedPdf.getAttachments();
-        if (rawAttachments) {
+        if (rawAttachments && !isCancelled) {
           const attList: PDFAttachment[] = [];
           for (const key of Object.keys(rawAttachments)) {
             const att = rawAttachments[key];
@@ -388,43 +453,52 @@ export default function PDFViewer({
             });
           }
           setAttachments(attList);
-        } else {
+        } else if (!isCancelled) {
           setAttachments([]);
         }
       } catch {
-        setAttachments([]);
+        if (!isCancelled) setAttachments([]);
       }
+    };
 
-      if (!isCancelled) {
-        setPages(pageList);
-        setPagesText(textList);
-        setLoading(false);
-      }
-    }).catch((err) => {
-      if (!isCancelled) {
-        console.error('Error loading PDF:', err);
-        setLoading(false);
-      }
-    });
+    // Check if proxy already exists in memory and is active
+    const cachedProxy = globalDocProxyCache.get(doc.blobUrl);
+    if (cachedProxy && !(cachedProxy as any).destroyed) {
+      initializeDocument(cachedProxy);
+    } else {
+      const loadingTask = pdfjsLib.getDocument({
+        url: doc.blobUrl,
+        cMapUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/cmaps/',
+        cMapPacked: true,
+        standardFontDataUrl: 'https://unpkg.com/pdfjs-dist@5.6.205/standard_fonts/',
+        enableXfa: true,
+      });
+
+      loadingTask.promise
+        .then((loadedPdf) => {
+          if (isCancelled) {
+            try { loadedPdf.destroy(); } catch {}
+            return;
+          }
+          globalDocProxyCache.set(doc.blobUrl, loadedPdf);
+          initializeDocument(loadedPdf);
+        })
+        .catch((err) => {
+          if (!isCancelled) {
+            console.error('Error loading PDF:', err);
+            setLoading(false);
+          }
+        });
+    }
 
     return () => {
       isCancelled = true;
-      try { loadingTask.destroy(); } catch {}
       activeRenderTasksRef.current.forEach((task) => {
         try { task.cancel(); } catch {}
       });
       activeRenderTasksRef.current.clear();
     };
   }, [doc.blobUrl]);
-
-  // Clean up PDF Proxy on unmount
-  useEffect(() => {
-    return () => {
-      if (pdfDoc) {
-        try { pdfDoc.destroy(); } catch {}
-      }
-    };
-  }, [pdfDoc]);
 
   // 2. High-DPI Page & Text Layer Rendering Engine
   const renderCanvasPage = useCallback(async (pageNum: number, rot: number, currentScale: number) => {
@@ -452,7 +526,9 @@ export default function PDFViewer({
     try {
       const page = await pdfDoc.getPage(pageNum);
       const outputScale = window.devicePixelRatio || 1;
-      const viewport = page.getViewport({ scale: currentScale, rotation: rot });
+      const pageRotate = page.rotate || 0;
+      const totalRotation = (pageRotate + rot) % 360;
+      const viewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
 
       const scaledWidth = Math.floor(viewport.width * outputScale);
       const scaledHeight = Math.floor(viewport.height * outputScale);
@@ -492,7 +568,7 @@ export default function PDFViewer({
       const textContainer = textLayerMapRef.current.get(pageNum);
       if (textContainer) {
         textContainer.innerHTML = '';
-        const textViewport = page.getViewport({ scale: currentScale, rotation: rot });
+        const textViewport = page.getViewport({ scale: currentScale, rotation: totalRotation });
         textContainer.style.width = `${Math.floor(textViewport.width)}px`;
         textContainer.style.height = `${Math.floor(textViewport.height)}px`;
         textContainer.style.setProperty('--scale-factor', `${currentScale}`);
@@ -518,7 +594,41 @@ export default function PDFViewer({
     }
   }, [pdfDoc]);
 
-  // 3. Lazy Viewport Rendering via IntersectionObserver
+  // Virtual GPU Canvas Discarding: Reclaims GPU VRAM for offscreen pages
+  const unloadCanvasPage = useCallback((pageNum: number) => {
+    if (activeRenderTasksRef.current.has(pageNum)) {
+      try { activeRenderTasksRef.current.get(pageNum)?.cancel(); } catch {}
+      activeRenderTasksRef.current.delete(pageNum);
+    }
+    if (activeTextTasksRef.current.has(pageNum)) {
+      try { activeTextTasksRef.current.get(pageNum)?.cancel(); } catch {}
+      activeTextTasksRef.current.delete(pageNum);
+    }
+
+    // Clear DOM textLayer to release memory
+    const textContainer = textLayerMapRef.current.get(pageNum);
+    if (textContainer) {
+      textContainer.innerHTML = '';
+    }
+
+    // Free canvas GPU buffer
+    const canvas = canvasMapRef.current.get(pageNum);
+    if (canvas && canvas.width > 1) {
+      canvas.width = 1;
+      canvas.height = 1;
+      const ctx = canvas.getContext('2d');
+      ctx?.clearRect(0, 0, 1, 1);
+    }
+
+    // Unmark page so it renders cleanly when scrolled back
+    Array.from(renderedPagesRef.current).forEach((key) => {
+      if (key.startsWith(`${pageNum}-`)) {
+        renderedPagesRef.current.delete(key);
+      }
+    });
+  }, []);
+
+  // 3. Lazy Viewport Rendering via IntersectionObserver with Virtual GPU Discarding
   useEffect(() => {
     if (!pdfDoc || pages.length === 0) return;
 
@@ -528,9 +638,19 @@ export default function PDFViewer({
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
+          const pageNum = parseInt(entry.target.getAttribute('data-page') || '1', 10);
           if (entry.isIntersecting) {
-            const pageNum = parseInt(entry.target.getAttribute('data-page') || '1', 10);
             renderCanvasPage(pageNum, rotation, scale);
+          } else {
+            // Virtual Page Recycling: Reclaim GPU memory when scrolled >1200px away
+            const rootBounds = entry.rootBounds;
+            if (rootBounds) {
+              const distanceAbove = rootBounds.top - entry.boundingClientRect.bottom;
+              const distanceBelow = entry.boundingClientRect.top - rootBounds.bottom;
+              if (distanceAbove > 1200 || distanceBelow > 1200) {
+                unloadCanvasPage(pageNum);
+              }
+            }
           }
         });
       },
@@ -547,7 +667,7 @@ export default function PDFViewer({
     return () => {
       observer.disconnect();
     };
-  }, [pdfDoc, pages, layoutMode]);
+  }, [pdfDoc, pages, layoutMode, rotation, scale, renderCanvasPage, unloadCanvasPage]);
 
   // Re-render visible pages on scale / rotation change (debounced for smooth zooming)
   useEffect(() => {
@@ -777,29 +897,48 @@ export default function PDFViewer({
               continue;
             }
 
-            try {
-              const otherPdf = await pdfjsLib.getDocument(otherDoc.blobUrl).promise;
-              const otherMatches: SearchMatch[] = [];
+            // High-Performance In-Memory Search Cache
+            let otherText = globalTextIndexCache.get(otherDoc.id);
+            if (!otherText) {
+              try {
+                let otherPdf = globalDocProxyCache.get(otherDoc.blobUrl);
+                if (!otherPdf) {
+                  otherPdf = await pdfjsLib.getDocument(otherDoc.blobUrl).promise;
+                  globalDocProxyCache.set(otherDoc.blobUrl, otherPdf);
+                }
+                const extractedText: PageTextData[] = [];
+                for (let i = 1; i <= otherPdf.numPages; i++) {
+                  const p = await otherPdf.getPage(i);
+                  const tc = await p.getTextContent();
+                  const str = tc.items.map((it: any) => it.str).join(' ');
+                  extractedText.push({ pageNum: i, text: str });
+                }
+                otherText = extractedText;
+                globalTextIndexCache.set(otherDoc.id, extractedText);
+              } catch (err) {
+                console.warn('Error reading text for search:', otherDoc.name, err);
+              }
+            }
 
-              for (let i = 1; i <= otherPdf.numPages; i++) {
-                const p = await otherPdf.getPage(i);
-                const tc = await p.getTextContent();
-                const str = tc.items.map((it: any) => it.str).join(' ');
-                
+            if (otherText && otherText.length > 0) {
+              const otherMatches: SearchMatch[] = [];
+              otherText.forEach(({ pageNum, text: str }) => {
+                if (!str) return;
                 let match;
                 let lIdx = 0;
                 while ((match = pattern.exec(str)) !== null) {
                   const start = Math.max(0, match.index - 35);
                   const end = Math.min(str.length, match.index + match[0].length + 35);
                   otherMatches.push({
-                    pageNum: i,
+                    pageNum,
                     matchIndex: lIdx++,
                     textSnippet: `...${str.slice(start, end).trim()}...`,
                     startIndex: match.index,
                     endIndex: match.index + match[0].length,
                   });
+                  if (otherMatches.length > 300) break;
                 }
-              }
+              });
 
               if (otherMatches.length > 0) {
                 multiResults.push({
@@ -808,9 +947,6 @@ export default function PDFViewer({
                   matches: otherMatches,
                 });
               }
-              otherPdf.destroy();
-            } catch (err) {
-              console.warn('Error searching file:', otherDoc.name, err);
             }
           }
           setMultiDocResults(multiResults);
@@ -839,6 +975,86 @@ export default function PDFViewer({
     setCurrentMatchIndex(prevIdx);
     scrollToPage(inDocMatches[prevIdx].pageNum);
   }, [inDocMatches, currentMatchIndex, scrollToPage]);
+
+  // Zoom Helpers
+  const handleZoomIn = () => setScale((prev) => Math.min(parseFloat((prev + 0.1).toFixed(2)), 2.5));
+  const handleZoomOut = () => setScale((prev) => Math.max(parseFloat((prev - 0.1).toFixed(2)), 0.4));
+  const handleZoomReset = () => setScale(1.0);
+  const handleFitWidth = () => {
+    if (!scrollContainerRef.current || pages.length === 0) return;
+    const containerW = scrollContainerRef.current.clientWidth - 80;
+    const pageW = pages[0].width;
+    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerW / pageW)).toFixed(2)));
+  };
+  const handleFitPage = () => {
+    if (!scrollContainerRef.current || pages.length === 0) return;
+    const containerH = scrollContainerRef.current.clientHeight - 80;
+    const pageH = pages[0].height;
+    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerH / pageH)).toFixed(2)));
+  };
+
+  // Rotation Helpers
+  const handleRotateCW = () => setRotation((prev) => (prev + 90) % 360);
+
+  // Fullscreen & Minimal Study Mode
+  useEffect(() => {
+    const handleFsChange = () => {
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+      if (!isFs) {
+        setIsStudyMode(false);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  const handleToggleStudyMode = useCallback(() => {
+    if (!containerRef.current) return;
+    if (!isStudyMode) {
+      if (!document.fullscreenElement) {
+        containerRef.current.requestFullscreen().catch(() => {});
+      }
+      setIsStudyMode(true);
+      setIsFullscreen(true);
+      setIsNavSidebarOpen(false); // Clean canvas for studying
+    } else {
+      if (document.fullscreenElement) {
+        document.exitFullscreen().catch(() => {});
+      }
+      setIsStudyMode(false);
+      setIsFullscreen(false);
+    }
+  }, [isStudyMode]);
+
+  const handleToggleFullscreen = () => {
+    if (!containerRef.current) return;
+    if (!document.fullscreenElement) {
+      containerRef.current.requestFullscreen().catch(() => {});
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen().catch(() => {});
+      setIsFullscreen(false);
+      setIsStudyMode(false);
+    }
+  };
+
+  const tintStyle = useMemo(() => {
+    if (!isStudyMode || studyTint === 'default') return {};
+    if (studyTint === 'sepia') {
+      return {
+        filter: 'sepia(0.35) contrast(0.95)',
+        backgroundColor: '#f5f0e6',
+      };
+    }
+    if (studyTint === 'dark') {
+      return {
+        filter: 'invert(0.92) hue-rotate(180deg) contrast(0.95)',
+        backgroundColor: '#121214',
+      };
+    }
+    return {};
+  }, [isStudyMode, studyTint]);
 
   // Keyboard Shortcuts (Esc closes open overlays/menus without closing PDF, ⌘Z undo, ⌘⇧Z redo, ⌘F search, ⌘B sidebar, Zen mode, Rotations)
   useEffect(() => {
@@ -915,6 +1131,27 @@ export default function PDFViewer({
         } else if (onOpenDocument) {
           onOpenDocument();
         }
+      } else if (isStudyMode && (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ')) {
+        e.preventDefault();
+        scrollToPage(Math.min(pages.length, currentPage + 1));
+      } else if (isStudyMode && (e.key === 'ArrowLeft' || e.key === 'PageUp')) {
+        e.preventDefault();
+        scrollToPage(Math.max(1, currentPage - 1));
+      } else if (isStudyMode && (e.key === 'w' || e.key === 'W')) {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleFitWidth();
+        }
+      } else if (isStudyMode && (e.key === 'p' || e.key === 'P')) {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleFitPage();
+        }
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+          handleToggleStudyMode();
+        }
       } else if (e.key === 'v' || e.key === 'V') {
         if (!e.ctrlKey && !e.metaKey) setActiveAnnotationTool('select');
       } else if (e.key === 'h' || e.key === 'H') {
@@ -957,7 +1194,14 @@ export default function PDFViewer({
     onCloseDoc,
     onClose,
     onNewTab,
-    onOpenDocument
+    onOpenDocument,
+    isStudyMode,
+    handleToggleStudyMode,
+    handleFitWidth,
+    handleFitPage,
+    scrollToPage,
+    currentPage,
+    pages.length
   ]);
 
   // 7. Page Layout Groups Construction
@@ -1003,31 +1247,30 @@ export default function PDFViewer({
     return pages.map((p) => [p]);
   }, [pages, layoutMode, facingCoverPage, currentPage]);
 
-  // Zoom Helpers
-  const handleZoomIn = () => setScale((prev) => Math.min(parseFloat((prev + 0.1).toFixed(2)), 2.5));
-  const handleZoomOut = () => setScale((prev) => Math.max(parseFloat((prev - 0.1).toFixed(2)), 0.4));
-  const handleZoomReset = () => setScale(1.0);
-  const handleFitWidth = () => {
-    if (!scrollContainerRef.current || pages.length === 0) return;
-    const containerW = scrollContainerRef.current.clientWidth - 80;
-    const pageW = pages[0].width;
-    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerW / pageW)).toFixed(2)));
-  };
-  const handleFitPage = () => {
-    if (!scrollContainerRef.current || pages.length === 0) return;
-    const containerH = scrollContainerRef.current.clientHeight - 80;
-    const pageH = pages[0].height;
-    setScale(parseFloat(Math.min(2.5, Math.max(0.4, containerH / pageH)).toFixed(2)));
-  };
-
-  // Rotation Helpers
-  const handleRotateCW = () => setRotation((prev) => (prev + 90) % 360);
-
   // Print & Download
   const handlePrint = () => {
     const w = window.open(doc.blobUrl, '_blank');
     w?.focus();
     w?.print();
+  };
+
+  const handleExportAnnotatedPDF = async () => {
+    if (annotations.length === 0) {
+      handleDownload();
+      return;
+    }
+    try {
+      setIsBakingAnnotations(true);
+      const arrayBuffer = await doc.file.arrayBuffer();
+      const bakedBytes = await bakeAnnotationsToPDF(arrayBuffer, annotations);
+      downloadFile(bakedBytes, `${doc.name.replace(/\.[^/.]+$/, '')}_annotated.pdf`, 'application/pdf');
+    } catch (err) {
+      console.error('Error baking annotations to PDF:', err);
+      // Fallback
+      handleDownload();
+    } finally {
+      setIsBakingAnnotations(false);
+    }
   };
 
   const handleDownload = () => {
@@ -1039,18 +1282,6 @@ export default function PDFViewer({
     document.body.removeChild(a);
   };
 
-  // Fullscreen
-  const handleToggleFullscreen = () => {
-    if (!containerRef.current) return;
-    if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().catch(() => {});
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen().catch(() => {});
-      setIsFullscreen(false);
-    }
-  };
-
   return (
     <div 
       ref={containerRef}
@@ -1058,8 +1289,8 @@ export default function PDFViewer({
         isFullscreen ? 'fixed inset-0 z-50' : ''
       }`}
     >
-      {/* Multi-Document Google Chrome-Style Tab Bar */}
-      {allDocs && allDocs.length > 0 && onSelectDoc ? (
+      {/* Multi-Document Google Chrome-Style Tab Bar (Hidden in Study Mode) */}
+      {!isStudyMode && allDocs && allDocs.length > 0 && onSelectDoc ? (
         <DocumentTabBar
           docs={allDocs}
           activeDocId={doc.id}
@@ -1069,10 +1300,52 @@ export default function PDFViewer({
         />
       ) : null}
 
-      {/* 1. Integrated Full-Featured Clean App Toolbar */}
-      <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
-        focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
-      }`}>
+      {/* Top Header: Either Minimal Fullscreen Study Bar OR Standard App Header */}
+      {isStudyMode ? (
+        <>
+          {!isStudyBarPinned && (
+            <div 
+              onMouseEnter={() => setIsStudyBarHovered(true)}
+              className="absolute top-0 inset-x-0 h-3 z-50 cursor-pointer"
+            />
+          )}
+          <div 
+            onMouseEnter={() => setIsStudyBarHovered(true)}
+            onMouseLeave={() => setIsStudyBarHovered(false)}
+            className={`w-full z-40 transition-transform duration-200 ${
+              isStudyBarPinned || isStudyBarHovered 
+                ? 'translate-y-0 relative' 
+                : '-translate-y-full absolute top-0'
+            }`}
+          >
+            <MinimalStudyBar
+              currentPage={currentPage}
+              totalPages={pages.length}
+              onPageChange={scrollToPage}
+              scale={scale}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onFitWidth={handleFitWidth}
+              onFitPage={handleFitPage}
+              onZoomReset={handleZoomReset}
+              layoutMode={layoutMode}
+              onToggleLayoutMode={() => setLayoutMode((m) => m === 'continuous' ? 'single' : 'continuous')}
+              isSidebarOpen={isNavSidebarOpen}
+              onToggleSidebar={() => toggleNavSidebar()}
+              isSearchOpen={isSearchOpen}
+              onToggleSearch={() => setIsSearchOpen((s) => !s)}
+              studyTint={studyTint}
+              onSelectStudyTint={setStudyTint}
+              isPinned={isStudyBarPinned}
+              onTogglePin={() => setIsStudyBarPinned((p) => !p)}
+              onExitStudyMode={handleToggleStudyMode}
+            />
+          </div>
+        </>
+      ) : (
+        <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
+          focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
+        }`}>
         
         {/* Left: Navigation Drawer Toggle & Document details */}
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
@@ -1233,10 +1506,29 @@ export default function PDFViewer({
 
           <button
             onClick={handleDownload}
-            title="Download PDF File"
-            className="h-8 w-8 rounded-lg border border-border hover:bg-surface flex items-center justify-center text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex"
+            disabled={isBakingAnnotations}
+            title={isBakingAnnotations ? "Baking annotations into PDF..." : (annotations.length > 0 ? "Download PDF with Markups" : "Download PDF File")}
+            className="h-8 px-2 rounded-lg border border-border hover:bg-surface flex items-center gap-1 text-zinc-600 dark:text-zinc-300 transition-colors shadow-xs hidden sm:flex disabled:opacity-50"
           >
-            <Download className="h-3.5 w-3.5" />
+            {isBakingAnnotations ? (
+              <div className="h-3.5 w-3.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+            ) : (
+              <Download className="h-3.5 w-3.5" />
+            )}
+            {annotations.length > 0 && !isBakingAnnotations ? (
+              <span className="text-[10px] font-mono text-accent font-semibold">Save</span>
+            ) : null}
+          </button>
+
+          {/* Minimal Fullscreen Study Mode Button */}
+          <button
+            type="button"
+            onClick={handleToggleStudyMode}
+            title="Minimal Study Mode [F] — Distraction-free full reading view"
+            className="h-8 px-2.5 rounded-lg border border-border hover:bg-surface flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-200 transition-colors shadow-xs"
+          >
+            <GraduationCap className="h-4 w-4 text-blue-500" />
+            <span className="hidden xl:inline">Study Mode</span>
           </button>
 
           <button
@@ -1260,6 +1552,7 @@ export default function PDFViewer({
         </div>
 
       </header>
+      )}
 
       {/* 2. Floating Search Engine Overlay */}
       <SearchOverlay
@@ -1353,7 +1646,10 @@ export default function PDFViewer({
           className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 ${
             layoutMode === 'single' ? 'justify-center min-h-full' : ''
           }`}
-          style={{ WebkitOverflowScrolling: 'touch' }}
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            ...tintStyle
+          }}
         >
           {loading ? (
             <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3">
@@ -1434,30 +1730,33 @@ export default function PDFViewer({
 
       </div>
 
-      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (No Overlap) */}
-      <FloatingAnnotationToolbar
-        activeTool={activeAnnotationTool}
-        onSelectTool={setActiveAnnotationTool}
-        activeColor={activeColor}
-        onSelectColor={setActiveColor}
-        strokeWidth={strokeWidth}
-        onSelectStrokeWidth={setStrokeWidth}
-        canUndo={undoStack.length > 0}
-        canRedo={redoStack.length > 0}
-        onUndo={handleUndo}
-        onRedo={handleRedo}
-        onClearPageAnnotations={handleClearPageAnnotations}
-        onExportXFDF={handleExportXFDF}
-        onExportJSON={handleExportJSON}
-        scale={scale}
-        onZoomIn={handleZoomIn}
-        onZoomOut={handleZoomOut}
-        onZoomReset={handleZoomReset}
-        onSetScale={setScale}
-        onFitWidth={handleFitWidth}
-        onFitPage={handleFitPage}
-        focusMode={focusMode}
-      />
+      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (Hidden in Study Mode for distraction-free reading) */}
+      {!isStudyMode && (
+        <FloatingAnnotationToolbar
+          activeTool={activeAnnotationTool}
+          onSelectTool={setActiveAnnotationTool}
+          activeColor={activeColor}
+          onSelectColor={setActiveColor}
+          strokeWidth={strokeWidth}
+          onSelectStrokeWidth={setStrokeWidth}
+          canUndo={undoStack.length > 0}
+          canRedo={redoStack.length > 0}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onClearPageAnnotations={handleClearPageAnnotations}
+          onExportXFDF={handleExportXFDF}
+          onExportJSON={handleExportJSON}
+          onExportAnnotatedPDF={handleExportAnnotatedPDF}
+          scale={scale}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onZoomReset={handleZoomReset}
+          onSetScale={setScale}
+          onFitWidth={handleFitWidth}
+          onFitPage={handleFitPage}
+          focusMode={focusMode}
+        />
+      )}
 
       {/* 7. Fullscreen Responsive Text Reflow Reader Modal */}
       <TextReflowView

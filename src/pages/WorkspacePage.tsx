@@ -15,8 +15,8 @@ import {
   Layers
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
-import { LoadedPDF } from '../types';
-import PDFViewer from '../components/PDFViewer';
+import { LoadedPDF, PDFAnnotation } from '../types';
+import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
 import EmptyState from '../components/EmptyState';
 
 // Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
@@ -150,6 +150,9 @@ export default function WorkspacePage({
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
 
+  // Tab session cache (instant tab switching, scroll preservation, zoom and annotations)
+  const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }>>(new Map());
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Helper to format file size
@@ -263,15 +266,27 @@ export default function WorkspacePage({
     setActiveTab('viewer');
   }, [setActiveTab]);
 
-  // Tab closing
+  // Tab closing with cache destruction
   const handleCloseTabDoc = useCallback((docId: string, e?: React.MouseEvent) => {
     if (e) {
       e.stopPropagation();
     }
     setOpenDocs((prev) => {
+      const targetDoc = prev.find((d) => d.id === docId);
       const targetIndex = prev.findIndex((d) => d.id === docId);
       if (targetIndex === -1) return prev;
       const remaining = prev.filter((d) => d.id !== docId);
+
+      // Clean up proxy and in-memory caches
+      if (targetDoc) {
+        const cached = globalDocProxyCache.get(targetDoc.blobUrl);
+        if (cached) {
+          try { cached.destroy(); } catch {}
+          globalDocProxyCache.delete(targetDoc.blobUrl);
+        }
+        globalTextIndexCache.delete(docId);
+        tabSessionMapRef.current.delete(docId);
+      }
 
       // If active doc was closed, pick adjacent tab
       if (activeDocId === docId) {
@@ -521,6 +536,13 @@ export default function WorkspacePage({
                   key={activeDoc.id} 
                   doc={activeDoc} 
                   allDocs={openDocs}
+                  initialPage={tabSessionMapRef.current.get(activeDoc.id)?.page}
+                  initialScale={tabSessionMapRef.current.get(activeDoc.id)?.scale}
+                  initialRotation={tabSessionMapRef.current.get(activeDoc.id)?.rotation}
+                  initialAnnotations={tabSessionMapRef.current.get(activeDoc.id)?.annotations}
+                  onSaveSessionState={(state) => {
+                    tabSessionMapRef.current.set(activeDoc.id, state);
+                  }}
                   onClose={handleCloseViewer} 
                   onSelectDoc={handleSelectTabDoc}
                   onCloseDoc={handleCloseTabDoc}
