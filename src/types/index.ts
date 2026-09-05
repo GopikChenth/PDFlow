@@ -1,6 +1,7 @@
 import { LucideIcon } from 'lucide-react';
 
-export type PageView = 'firstPage' | 'workspace' | 'comparison';
+export type PageView = 'firstPage' | 'workspace';
+export type AppMode = 'editor' | 'study' | 'reader';
 
 export interface DocumentSheet {
   id: string;
@@ -137,6 +138,8 @@ export interface PDFAnnotation {
   type: AnnotationToolType;
   // Normalized 0..1 bounding box or anchor
   rect?: { x: number; y: number; width: number; height: number };
+  // Multi-rect for multi-line text highlights
+  rects?: Array<{ x: number; y: number; width: number; height: number }>;
   // Normalized 0..1 point array for pen paths, lines, arrows, polygons, and measurements
   points?: Array<{ x: number; y: number }>;
   color: string;

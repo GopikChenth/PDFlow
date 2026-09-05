@@ -21,7 +21,7 @@ export default function EmptyState({
     <div className="flex-1 w-full h-full flex items-center justify-center p-6 sm:p-8">
       <div
         onClick={onAction}
-        className="max-w-lg w-full p-10 sm:p-12 rounded-2xl border-2 border-dashed border-border bg-card/40 hover:bg-card hover:border-accent/60 transition-all cursor-pointer group shadow-sm flex flex-col items-center justify-center text-center select-none"
+        className="max-w-lg w-full p-10 sm:p-12 rounded-2xl border-2 border-dashed border-border bg-card hover:border-accent/60 transition-all cursor-pointer group shadow-sm flex flex-col items-center justify-center text-center select-none"
       >
         {/* Uniform Icon Box */}
         <div className="h-16 w-16 rounded-2xl bg-surface border border-border/50 flex items-center justify-center mb-4 text-zinc-500 group-hover:text-accent group-hover:scale-105 transition-all shadow-xs">

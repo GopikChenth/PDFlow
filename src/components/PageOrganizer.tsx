@@ -402,7 +402,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
     >
       
       {/* 1. Control & Action Toolbar */}
-      <div className="h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0 z-10">
+      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0 z-10">
         
         {/* Left: Title & Selection Stats */}
         <div className="flex items-center gap-2.5 min-w-0">
@@ -598,7 +598,7 @@ export default function PageOrganizer({ doc, onSaveModifiedDoc, onOpenInViewer }
                     />
 
                     {/* Original Source Reference */}
-                    <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1 py-0.5 rounded bg-black/60 text-white/90 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="absolute bottom-1 right-1 text-[8px] font-mono px-1.5 py-0.5 rounded bg-zinc-900 text-white border border-zinc-700 opacity-0 group-hover:opacity-100 transition-opacity">
                       Src #{item.originalPageNumber}
                     </span>
                   </div>

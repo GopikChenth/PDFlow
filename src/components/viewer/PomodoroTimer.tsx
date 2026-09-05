@@ -4,14 +4,14 @@ import {
   Pause, 
   RotateCcw, 
   SkipForward, 
-  Settings, 
   Volume2, 
   VolumeX, 
   Timer, 
   CheckCircle2,
-  Coffee,
-  Brain,
-  X
+  X,
+  Sliders,
+  Plus,
+  Minus
 } from 'lucide-react';
 import { usePomodoro } from '../../context/PomodoroContext';
 
@@ -64,9 +64,9 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
     return () => window.removeEventListener('mousedown', handleDocClick);
   }, [showPopover]);
 
-  const handleApplyCustomIntervals = (e: React.FormEvent) => {
-    e.preventDefault();
-    const cleanFocus = Math.max(1, Math.min(120, Number(customFocus) || 25));
+  const handleApplyCustomIntervals = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    const cleanFocus = Math.max(1, Math.min(180, Number(customFocus) || 25));
     const cleanShort = Math.max(1, Math.min(60, Number(customShortBreak) || 5));
     const cleanLong = Math.max(1, Math.min(90, Number(customLongBreak) || 15));
 
@@ -107,12 +107,12 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
         className={`h-7 px-2 rounded-lg border flex items-center gap-1.5 transition-all cursor-pointer shadow-xs ${
           isRunning
             ? phase === 'focus'
-              ? 'bg-rose-950/70 border-rose-600/80 text-rose-200'
-              : 'bg-emerald-950/70 border-emerald-600/80 text-emerald-200'
+              ? 'bg-rose-950/70 border-rose-600/80 text-rose-200 ring-1 ring-rose-500/20'
+              : 'bg-emerald-950/70 border-emerald-600/80 text-emerald-200 ring-1 ring-emerald-500/20'
             : 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:border-zinc-700 hover:text-white'
         }`}
         onClick={() => setShowPopover((prev) => !prev)}
-        title="Pomodoro Study Timer (Click to open controls)"
+        title="Pomodoro Study Timer (Click to open controls & custom intervals)"
       >
         {/* Phase Indicator Dot / Icon */}
         <span className="relative flex h-2 w-2">
@@ -133,7 +133,7 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
 
         {/* Phase Label Pill */}
         <span className="text-[9px] font-semibold uppercase tracking-wider opacity-80 hidden md:inline">
-          {phase === 'focus' ? 'Focus' : phase === 'shortBreak' ? 'Break' : 'Long Break'}
+          {phase === 'focus' ? 'Work' : phase === 'shortBreak' ? 'Break' : 'Long Break'}
         </span>
       </div>
 
@@ -156,7 +156,10 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
 
       {/* 2. Popover Modal Dialog */}
       {showPopover && (
-        <div className="absolute top-9 right-0 sm:left-1/2 sm:-translate-x-1/2 z-50 w-72 p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 shadow-2xl text-zinc-200 animate-in fade-in zoom-in-95 duration-150 select-none">
+        <div 
+          className="absolute top-9 right-0 sm:left-1/2 sm:-translate-x-1/2 z-50 w-80 p-4 rounded-2xl bg-zinc-900 border border-zinc-700/80 shadow-[0_25px_60px_rgba(0,0,0,0.65)] text-zinc-200 animate-in fade-in zoom-in-95 duration-150 select-none"
+          style={{ backgroundColor: '#18181b' }}
+        >
           
           {/* Header */}
           <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
@@ -178,12 +181,15 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
               <button
                 type="button"
                 onClick={() => setShowSettingsTab((s) => !s)}
-                title="Custom Intervals Settings"
-                className={`h-6 w-6 rounded hover:bg-zinc-800 flex items-center justify-center transition-colors ${
-                  showSettingsTab ? 'text-blue-400 bg-zinc-800' : 'text-zinc-400 hover:text-zinc-200'
+                title="Configure Custom Intervals (Work & Breaks)"
+                className={`h-6 px-1.5 rounded flex items-center gap-1 text-[11px] font-medium transition-colors ${
+                  showSettingsTab 
+                    ? 'text-blue-300 bg-blue-600/20 border border-blue-500/30' 
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <Settings className="h-3.5 w-3.5" />
+                <Sliders className="h-3.5 w-3.5" />
+                <span>Intervals</span>
               </button>
 
               <button
@@ -200,44 +206,47 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
           {!showSettingsTab ? (
             <>
               {/* Phase Switcher Tabs */}
-              <div className="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800/80 my-3">
+              <div 
+                className="grid grid-cols-3 gap-1 bg-zinc-950 p-1 rounded-xl border border-zinc-800 my-3"
+                style={{ backgroundColor: '#09090b' }}
+              >
                 <button
                   type="button"
                   onClick={() => switchPhase('focus')}
-                  className={`py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  className={`py-1.5 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'focus'
                       ? 'bg-rose-600 text-white shadow-xs'
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  <Brain className="h-3 w-3" />
-                  <span>Focus</span>
+                  <span>Work</span>
+                  <span className="text-[9px] font-mono opacity-80">{settings.focusMin}m</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => switchPhase('shortBreak')}
-                  className={`py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  className={`py-1.5 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'shortBreak'
                       ? 'bg-emerald-600 text-white shadow-xs'
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  <Coffee className="h-3 w-3" />
                   <span>Break</span>
+                  <span className="text-[9px] font-mono opacity-80">{settings.shortBreakMin}m</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => switchPhase('longBreak')}
-                  className={`py-1 rounded-lg text-[11px] font-semibold transition-all flex items-center justify-center gap-1 ${
+                  className={`py-1.5 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 ${
                     phase === 'longBreak'
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'text-zinc-400 hover:text-zinc-200'
                   }`}
                 >
-                  <Coffee className="h-3 w-3" />
-                  <span>Long</span>
+                  <span>Long Break</span>
+                  <span className="text-[9px] font-mono opacity-80">{settings.longBreakMin}m</span>
                 </button>
               </div>
 
@@ -263,21 +272,21 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                 <button
                   type="button"
                   onClick={resetTimer}
-                  title="Reset Timer"
-                  className="h-8 w-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                  title="Reset Current Interval"
+                  className="h-9 w-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors shadow-xs"
                 >
-                  <RotateCcw className="h-3.5 w-3.5" />
+                  <RotateCcw className="h-4 w-4" />
                 </button>
 
                 <button
                   type="button"
                   onClick={toggleTimer}
-                  className={`h-9 px-5 rounded-xl font-semibold text-xs flex items-center gap-1.5 text-white transition-all shadow-md ${
+                  className={`h-9 px-5 rounded-xl font-bold text-xs flex items-center gap-1.5 text-white transition-all shadow-md active:scale-95 ${
                     isRunning 
                       ? 'bg-zinc-700 hover:bg-zinc-600' 
                       : phase === 'focus'
-                        ? 'bg-rose-600 hover:bg-rose-500'
-                        : 'bg-emerald-600 hover:bg-emerald-500'
+                        ? 'bg-rose-600 hover:bg-rose-500 shadow-rose-950/40'
+                        : 'bg-emerald-600 hover:bg-emerald-500 shadow-emerald-950/40'
                   }`}
                 >
                   {isRunning ? (
@@ -288,7 +297,7 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                   ) : (
                     <>
                       <Play className="h-3.5 w-3.5 fill-current" />
-                      <span>Start {phase === 'focus' ? 'Focus' : 'Break'}</span>
+                      <span>Start {phase === 'focus' ? 'Work' : 'Break'}</span>
                     </>
                   )}
                 </button>
@@ -297,9 +306,9 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                   type="button"
                   onClick={skipPhase}
                   title="Skip to Next Phase"
-                  className="h-8 w-8 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                  className="h-9 w-9 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors shadow-xs"
                 >
-                  <SkipForward className="h-3.5 w-3.5" />
+                  <SkipForward className="h-4 w-4" />
                 </button>
               </div>
 
@@ -307,7 +316,7 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
               <div className="mt-3 pt-2.5 border-t border-zinc-800/80 flex items-center justify-between text-[11px] text-zinc-400">
                 <span className="flex items-center gap-1">
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                  <span>Completed:</span>
+                  <span>Completed Cycles:</span>
                 </span>
                 <span className="font-mono font-semibold text-zinc-200">
                   {completedSessions} {completedSessions === 1 ? 'session' : 'sessions'}
@@ -317,81 +326,142 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
           ) : (
             /* Custom Time Intervals Settings Form */
             <form onSubmit={handleApplyCustomIntervals} className="mt-2.5 flex flex-col gap-3">
-              <div className="text-[11px] font-semibold text-zinc-300 uppercase tracking-wider font-mono">
-                Custom Intervals
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-zinc-300 uppercase tracking-wider font-mono">
+                  Set Custom Intervals
+                </span>
+                <span className="text-[10px] text-zinc-500">Auto-saved</span>
               </div>
 
               {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-1.5">
+              <div className="grid grid-cols-3 gap-1.5">
                 <button
                   type="button"
                   onClick={() => handleLoadPreset(25, 5, 15)}
-                  className="flex-1 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors"
+                  className="py-1 px-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors text-center border border-zinc-700/60"
                 >
-                  25 / 5 min
+                  <div className="font-semibold text-zinc-200">25 / 5 min</div>
+                  <div className="text-[8px] text-zinc-500">Classic</div>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleLoadPreset(50, 10, 20)}
-                  className="flex-1 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors"
+                  className="py-1 px-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors text-center border border-zinc-700/60"
                 >
-                  50 / 10 min
+                  <div className="font-semibold text-zinc-200">50 / 10 min</div>
+                  <div className="text-[8px] text-zinc-500">Deep Work</div>
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleLoadPreset(90, 15, 30)}
-                  className="flex-1 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors"
+                  onClick={() => handleLoadPreset(90, 20, 30)}
+                  className="py-1 px-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-[10px] font-mono text-zinc-300 transition-colors text-center border border-zinc-700/60"
                 >
-                  90 / 15 min
+                  <div className="font-semibold text-zinc-200">90 / 20 min</div>
+                  <div className="text-[8px] text-zinc-500">Ultradian</div>
                 </button>
               </div>
 
-              <div className="flex flex-col gap-2 bg-zinc-950 p-2 rounded-xl border border-zinc-800/80 text-xs">
-                {/* Focus Duration */}
+              {/* Stepper Inputs for Custom Work & Break times */}
+              <div 
+                className="flex flex-col gap-2.5 bg-zinc-950 p-2.5 rounded-xl border border-zinc-800 text-xs"
+                style={{ backgroundColor: '#09090b' }}
+              >
+                {/* 1. Work Duration */}
                 <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Focus Session</span>
+                  <div>
+                    <div className="font-semibold text-zinc-200">Work Session</div>
+                    <div className="text-[10px] text-zinc-500">Focus interval</div>
+                  </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCustomFocus((f) => Math.max(1, f - 5))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input
                       type="number"
                       min="1"
-                      max="120"
+                      max="180"
                       value={customFocus}
                       onChange={(e) => setCustomFocus(parseInt(e.target.value, 10) || 1)}
-                      className="w-12 h-6 bg-zinc-800 border border-zinc-700 rounded text-center font-mono font-semibold text-zinc-100 focus:outline-none focus:border-blue-500"
+                      className="w-11 h-6 bg-zinc-900 border border-zinc-700 rounded text-center font-mono font-bold text-xs text-rose-400 focus:outline-none focus:border-rose-500"
                     />
-                    <span className="text-zinc-500 text-[11px]">min</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomFocus((f) => Math.min(180, f + 5))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    <span className="text-zinc-500 text-[11px] w-6">min</span>
                   </div>
                 </div>
 
-                {/* Short Break */}
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Short Break</span>
+                {/* 2. Short Break Duration */}
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60">
+                  <div>
+                    <div className="font-semibold text-zinc-200">Short Break</div>
+                    <div className="text-[10px] text-zinc-500">Quick rest</div>
+                  </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCustomShortBreak((b) => Math.max(1, b - 1))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input
                       type="number"
                       min="1"
                       max="60"
                       value={customShortBreak}
                       onChange={(e) => setCustomShortBreak(parseInt(e.target.value, 10) || 1)}
-                      className="w-12 h-6 bg-zinc-800 border border-zinc-700 rounded text-center font-mono font-semibold text-zinc-100 focus:outline-none focus:border-blue-500"
+                      className="w-11 h-6 bg-zinc-900 border border-zinc-700 rounded text-center font-mono font-bold text-xs text-emerald-400 focus:outline-none focus:border-emerald-500"
                     />
-                    <span className="text-zinc-500 text-[11px]">min</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomShortBreak((b) => Math.min(60, b + 1))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    <span className="text-zinc-500 text-[11px] w-6">min</span>
                   </div>
                 </div>
 
-                {/* Long Break */}
-                <div className="flex items-center justify-between">
-                  <span className="text-zinc-400">Long Break</span>
+                {/* 3. Long Break Duration */}
+                <div className="flex items-center justify-between pt-1 border-t border-zinc-800/60">
+                  <div>
+                    <div className="font-semibold text-zinc-200">Long Break</div>
+                    <div className="text-[10px] text-zinc-500">After 4 cycles</div>
+                  </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCustomLongBreak((b) => Math.max(1, b - 5))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Minus className="h-3 w-3" />
+                    </button>
                     <input
                       type="number"
                       min="1"
                       max="90"
                       value={customLongBreak}
                       onChange={(e) => setCustomLongBreak(parseInt(e.target.value, 10) || 1)}
-                      className="w-12 h-6 bg-zinc-800 border border-zinc-700 rounded text-center font-mono font-semibold text-zinc-100 focus:outline-none focus:border-blue-500"
+                      className="w-11 h-6 bg-zinc-900 border border-zinc-700 rounded text-center font-mono font-bold text-xs text-indigo-400 focus:outline-none focus:border-indigo-500"
                     />
-                    <span className="text-zinc-500 text-[11px]">min</span>
+                    <button
+                      type="button"
+                      onClick={() => setCustomLongBreak((b) => Math.min(90, b + 5))}
+                      className="h-6 w-6 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 flex items-center justify-center transition-colors"
+                    >
+                      <Plus className="h-3 w-3" />
+                    </button>
+                    <span className="text-zinc-500 text-[11px] w-6">min</span>
                   </div>
                 </div>
               </div>
@@ -401,15 +471,15 @@ export default function PomodoroTimer({ className = '' }: PomodoroTimerProps) {
                 <button
                   type="button"
                   onClick={() => setShowSettingsTab(false)}
-                  className="flex-1 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition-colors"
+                  className="flex-1 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-300 transition-colors"
                 >
-                  Cancel
+                  Back
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-xs font-semibold text-white transition-colors shadow-xs"
+                  className="flex-1 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white transition-colors shadow-xs"
                 >
-                  Save Intervals
+                  Save & Apply
                 </button>
               </div>
             </form>

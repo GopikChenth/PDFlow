@@ -11,17 +11,16 @@ import {
   Clock, 
   ArrowRight,
   UploadCloud,
-  CheckCircle2,
-  Layers
+  CheckCircle2
 } from 'lucide-react';
 import { NAV_ITEMS, TOOL_ITEMS } from '../constants/mockData';
-import { LoadedPDF, PDFAnnotation } from '../types';
+import { LoadedPDF, PDFAnnotation, AppMode } from '../types';
 import PDFViewer, { globalDocProxyCache, globalTextIndexCache } from '../components/PDFViewer';
 import EmptyState from '../components/EmptyState';
 import { PomodoroProvider } from '../context/PomodoroContext';
+import PomodoroPromptToast from '../components/viewer/PomodoroPromptToast';
 
 // Lazy-load heavy offline manipulation tools to prevent upfront bundle weight
-const PageOrganizer = React.lazy(() => import('../components/PageOrganizer'));
 const MergeTool = React.lazy(() => import('../components/tools/MergeTool'));
 const SplitTool = React.lazy(() => import('../components/tools/SplitTool'));
 const CompressTool = React.lazy(() => import('../components/tools/CompressTool'));
@@ -117,6 +116,8 @@ interface WorkspacePageProps {
   controlledActiveTab?: string;
   onActiveTabChange?: (tab: string) => void;
   onActiveDocChange?: (docName: string | null) => void;
+  initialMode?: AppMode;
+  onModeChange?: (mode: AppMode) => void;
 }
 
 export default function WorkspacePage({ 
@@ -126,7 +127,22 @@ export default function WorkspacePage({
   controlledActiveTab,
   onActiveTabChange,
   onActiveDocChange,
+  initialMode = 'editor',
+  onModeChange,
 }: WorkspacePageProps) {
+  const [currentMode, setCurrentMode] = useState<AppMode>(initialMode);
+
+  useEffect(() => {
+    if (initialMode) {
+      setCurrentMode(initialMode);
+    }
+  }, [initialMode]);
+
+  const handleModeChange = useCallback((mode: AppMode) => {
+    setCurrentMode(mode);
+    if (onModeChange) onModeChange(mode);
+  }, [onModeChange]);
+
   const [internalActiveTab, setInternalActiveTab] = useState<string>('recent');
   const activeTab = controlledActiveTab ?? internalActiveTab;
   const setActiveTab = useCallback((tab: string) => {
@@ -135,6 +151,13 @@ export default function WorkspacePage({
   }, [onActiveTabChange]);
 
   const [openDocs, setOpenDocs] = useState<LoadedPDF[]>([]);
+
+  // If leaving editor mode while on an offline tool, switch back to viewer or recent
+  useEffect(() => {
+    if (currentMode !== 'editor' && TOOL_ITEMS.some((t) => t.id === activeTab)) {
+      setActiveTab(openDocs.length > 0 ? 'viewer' : 'recent');
+    }
+  }, [currentMode, activeTab, openDocs.length, setActiveTab]);
   const [activeDocId, setActiveDocId] = useState<string | null>(null);
 
   const activeDoc = React.useMemo(() => {
@@ -150,6 +173,7 @@ export default function WorkspacePage({
 
   const [recentDocs, setRecentDocs] = useState<LoadedPDF[]>([]);
   const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [conversionStatus, setConversionStatus] = useState<string | null>(null);
 
   // Tab session cache (instant tab switching, scroll preservation, zoom and annotations)
   const tabSessionMapRef = useRef<Map<string, { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }>>(new Map());
@@ -172,30 +196,93 @@ export default function WorkspacePage({
     }
   }, []);
 
-  // Process chosen File(s)
-  const processFiles = useCallback((files: FileList | File[]) => {
+  // Process chosen File(s) (supporting PDF, EPUB, CBZ, CBR, CBN in Books & Comics mode)
+  const processFiles = useCallback(async (files: FileList | File[]) => {
+    const isReaderMode = currentMode === 'reader';
     const validFiles: File[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      const lower = file.name.toLowerCase();
+      const isPdf = file.type === 'application/pdf' || lower.endsWith('.pdf');
+      const isComic = lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn');
+      const isEpub = file.type === 'application/epub+zip' || lower.endsWith('.epub');
+
+      if (isPdf || (isReaderMode && (isComic || isEpub))) {
         validFiles.push(file);
       }
     }
 
     if (validFiles.length === 0) {
-      alert('Please select valid PDF file(s).');
+      if (isReaderMode) {
+        alert('Please select valid PDF, EPUB, or CBZ/CBR comic book file(s).');
+      } else {
+        alert('Please select valid PDF file(s).');
+      }
       return;
     }
 
-    const newDocs: LoadedPDF[] = validFiles.map((file, idx) => ({
-      id: `${Date.now()}-${idx}-${file.name}`,
-      name: file.name,
-      size: formatFileSize(file.size),
-      rawSize: file.size,
-      blobUrl: URL.createObjectURL(file),
-      file,
-      loadedAt: new Date(),
-    }));
+    const newDocs: LoadedPDF[] = [];
+
+    for (let idx = 0; idx < validFiles.length; idx++) {
+      const file = validFiles[idx];
+      const lower = file.name.toLowerCase();
+      const isComic = lower.endsWith('.cbz') || lower.endsWith('.cbr') || lower.endsWith('.cbn');
+      const isEpub = lower.endsWith('.epub');
+
+      try {
+        if (isComic) {
+          setConversionStatus(`Unpacking comic pages for "${file.name}"...`);
+          const { loadComicBookArchive } = await import('../utils/comicLoader');
+          const { pdfBytes, pageCount } = await loadComicBookArchive(file);
+          const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+          const pdfFile = new File([pdfBlob], file.name, { type: 'application/pdf' });
+          newDocs.push({
+            id: `${Date.now()}-${idx}-${file.name}`,
+            name: file.name,
+            size: formatFileSize(file.size),
+            rawSize: file.size,
+            blobUrl: URL.createObjectURL(pdfBlob),
+            file: pdfFile,
+            loadedAt: new Date(),
+            pageCount,
+          });
+        } else if (isEpub) {
+          setConversionStatus(`Rendering EPUB book "${file.name}"...`);
+          const { loadEpubBook } = await import('../utils/epubLoader');
+          const { pdfBytes, pageCount, title } = await loadEpubBook(file);
+          const pdfBlob = new Blob([pdfBytes.buffer as ArrayBuffer], { type: 'application/pdf' });
+          const pdfFile = new File([pdfBlob], file.name, { type: 'application/pdf' });
+          newDocs.push({
+            id: `${Date.now()}-${idx}-${file.name}`,
+            name: title ? `${title} (${file.name})` : file.name,
+            size: formatFileSize(file.size),
+            rawSize: file.size,
+            blobUrl: URL.createObjectURL(pdfBlob),
+            file: pdfFile,
+            loadedAt: new Date(),
+            pageCount,
+          });
+        } else {
+          newDocs.push({
+            id: `${Date.now()}-${idx}-${file.name}`,
+            name: file.name,
+            size: formatFileSize(file.size),
+            rawSize: file.size,
+            blobUrl: URL.createObjectURL(file),
+            file,
+            loadedAt: new Date(),
+          });
+        }
+      } catch (err: any) {
+        console.error('Error processing document:', err);
+        alert(err.message || `Failed to process ${file.name}`);
+      } finally {
+        setConversionStatus(null);
+      }
+    }
+
+    if (newDocs.length === 0) return;
 
     setOpenDocs((prev) => {
       const existingNames = new Set(prev.map((d) => d.name));
@@ -210,7 +297,7 @@ export default function WorkspacePage({
 
     setActiveDocId(newDocs[newDocs.length - 1].id);
     setActiveTab('viewer');
-  }, [setActiveTab]);
+  }, [currentMode, setActiveTab]);
 
   // File input change event
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,6 +435,17 @@ export default function WorkspacePage({
 
   return (
     <PomodoroProvider>
+      {/* Global Pomodoro Session Transition Prompt Toast */}
+      <PomodoroPromptToast />
+
+      {/* Conversion Status Toast for Comics and Ebooks */}
+      {conversionStatus && (
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-zinc-900/95 dark:bg-zinc-100/95 text-white dark:text-zinc-900 px-4 py-2.5 rounded-xl shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-medium border border-zinc-700/50 dark:border-zinc-300/50 animate-in fade-in slide-in-from-top-2">
+          <div className="h-3.5 w-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin flex-shrink-0" />
+          <span>{conversionStatus}</span>
+        </div>
+      )}
+
       <div 
         className="flex w-full h-full overflow-hidden bg-background text-zinc-800 dark:text-zinc-200"
       onDragOver={handleDragOver}
@@ -358,7 +456,11 @@ export default function WorkspacePage({
       <input
         ref={fileInputRef}
         type="file"
-        accept="application/pdf"
+        accept={
+          currentMode === 'reader'
+            ? '.pdf,.epub,.cbz,.cbr,.cbn,application/pdf,application/epub+zip'
+            : 'application/pdf'
+        }
         multiple
         onChange={handleFileChange}
         className="hidden"
@@ -366,7 +468,7 @@ export default function WorkspacePage({
 
       {/* 1. Left Sidebar Navigation (Hidden when viewing an active document in PDF Viewer so PDF Pages sidebar is primary) */}
       {!(activeTab === 'viewer' && activeDoc) && (
-        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md p-4">
+        <aside className="w-64 flex-shrink-0 flex flex-col justify-between border-r border-border bg-surface dark:bg-surface p-4">
           <div className="flex flex-col gap-6">
             
             {/* Brand Header with Home Action */}
@@ -375,12 +477,12 @@ export default function WorkspacePage({
               className="flex items-center gap-3 px-2 text-left hover:opacity-80 transition-opacity group"
               title="Return to Presentation Cover"
             >
-              <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center font-extrabold text-sm shadow-md group-hover:bg-accent group-hover:text-white transition-colors">
-                P
+              <div className="h-8 w-8 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-zinc-100 dark:text-zinc-900 flex items-center justify-center font-extrabold text-xs shadow-md group-hover:bg-accent group-hover:text-white transition-colors">
+                IV
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">PDF Studio</h1>
+                  <h1 className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100">Ink Vault</h1>
                   <ChevronLeft className="h-3 w-3 opacity-0 group-hover:opacity-100 transition-opacity text-accent" />
                 </div>
               </div>
@@ -416,11 +518,20 @@ export default function WorkspacePage({
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                       isActive 
                         ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
-                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
+                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
                     }`}
                   >
                     <span className="flex items-center gap-2.5">
-                      <Icon className="h-4 w-4" /> {item.label}
+                      <Icon className="h-4 w-4" />
+                      <span>
+                        {item.id === 'viewer'
+                          ? currentMode === 'reader'
+                            ? 'Reader View'
+                            : currentMode === 'study'
+                            ? 'Study Reader'
+                            : 'PDF Viewer'
+                          : item.label}
+                      </span>
                     </span>
                     {typeof count === 'number' && count > 0 && (
                       <span className="text-[10px] font-mono bg-zinc-200/80 dark:bg-surface px-1.5 py-0.5 rounded text-zinc-600 dark:text-zinc-300">
@@ -432,29 +543,31 @@ export default function WorkspacePage({
               })}
             </div>
 
-            {/* Offline Tools Nav Group */}
-            <div className="flex flex-col gap-1">
-              <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
-                Offline Tools
-              </span>
-              {TOOL_ITEMS.map((tool) => {
-                const Icon = tool.icon;
-                const isActive = activeTab === tool.id;
-                return (
-                  <button
-                    key={tool.id}
-                    onClick={() => setActiveTab(tool.id)}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                      isActive 
-                        ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
-                        : 'text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-100'
-                    }`}
-                  >
-                    <Icon className="h-4 w-4" /> {tool.label}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Offline Tools Nav Group (Only in Studio Editor mode) */}
+            {currentMode === 'editor' && (
+              <div className="flex flex-col gap-1">
+                <span className="px-2 text-[10px] font-mono uppercase tracking-wider text-zinc-400 font-semibold mb-1">
+                  Offline Tools
+                </span>
+                {TOOL_ITEMS.map((tool) => {
+                  const Icon = tool.icon;
+                  const isActive = activeTab === tool.id;
+                  return (
+                    <button
+                      key={tool.id}
+                      onClick={() => setActiveTab(tool.id)}
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                        isActive 
+                          ? 'bg-card text-zinc-900 dark:text-zinc-100 shadow-sm border border-border font-semibold' 
+                          : 'text-zinc-600 dark:text-zinc-400 hover:bg-card hover:text-zinc-900 dark:hover:text-zinc-100'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" /> {tool.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
           </div>
 
@@ -488,7 +601,7 @@ export default function WorkspacePage({
         
         {/* Drag Overlay Indicator */}
         {isDragging && (
-          <div className="absolute inset-0 z-50 bg-accent/10 backdrop-blur-sm border-2 border-dashed border-accent m-4 rounded-2xl flex flex-col items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 z-50 bg-white/90 dark:bg-zinc-950/90 border-2 border-dashed border-accent m-4 rounded-2xl flex flex-col items-center justify-center pointer-events-none">
             <div className="h-16 w-16 rounded-2xl bg-accent text-white flex items-center justify-center shadow-lg mb-3 animate-bounce">
               <UploadCloud className="h-8 w-8" />
             </div>
@@ -501,9 +614,9 @@ export default function WorkspacePage({
           </div>
         )}
 
-        {/* Top App Header Bar (Shown when not in full integrated viewer or organizer mode) */}
-        {!((activeTab === 'viewer' || activeTab === 'organizer') && activeDoc) && (
-          <header className="h-12 border-b border-border flex items-center justify-between px-6 bg-surface/40 backdrop-blur-md flex-shrink-0 z-20">
+        {/* Top App Header Bar (Shown when not in full integrated viewer mode) */}
+        {!(activeTab === 'viewer' && activeDoc) && (
+          <header className="h-12 border-b border-border flex items-center justify-between px-6 bg-surface dark:bg-surface flex-shrink-0 z-20">
             <div className="flex items-center gap-3 text-xs font-mono text-zinc-500 min-w-0">
               <button 
                 onClick={onReturnToCover}
@@ -550,38 +663,24 @@ export default function WorkspacePage({
                   onCloseDoc={handleCloseTabDoc}
                   onNewTab={handleNewTab}
                   onOpenDocument={handleTriggerOpenFile}
-                  onOpenOrganizer={() => setActiveTab('organizer')}
                   darkMode={darkMode}
                   onToggleDarkMode={onToggleDarkMode}
                   onReturnToCover={onReturnToCover}
+                  initialAppMode={currentMode}
+                  onAppModeChange={handleModeChange}
                 />
               ) : (
                 <EmptyState
                   icon={FolderOpen}
-                  title="Select a PDF to view"
-                  description="Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace."
-                  actionLabel="Browse Local Files"
+                  title={currentMode === 'reader' ? 'Select a Book or Comic' : 'Select a PDF to view'}
+                  description={
+                    currentMode === 'reader'
+                      ? 'Click to open file manager or drag and drop EPUB books, CBZ/CBR comics, or PDF documents anywhere into the workspace.'
+                      : 'Click to open file manager or drag and drop one or more PDF documents anywhere into the workspace.'
+                  }
+                  actionLabel={currentMode === 'reader' ? 'Browse Books & Comics' : 'Browse Local Files'}
                   onAction={handleTriggerOpenFile}
-                />
-              )
-            ) : activeTab === 'organizer' ? (
-              /* TAB 2: Page Organizer */
-              activeDoc ? (
-                <PageOrganizer
-                  key={activeDoc.id}
-                  doc={activeDoc}
-                  onSaveModifiedDoc={(updatedDoc) => {
-                    handleRegisterAndOpenDoc(updatedDoc);
-                  }}
-                  onOpenInViewer={() => setActiveTab('viewer')}
-                />
-              ) : (
-                <EmptyState
-                  icon={Layers}
-                  title="No Document Selected for Organizing"
-                  description="Open a PDF to rearrange, rotate, duplicate, or delete pages with drag-and-drop."
-                  actionLabel="Select Document"
-                  onAction={handleTriggerOpenFile}
+                  hint={currentMode === 'reader' ? 'supports EPUB, CBZ, CBR, PDF' : 'or drag and drop PDF anywhere'}
                 />
               )
             ) : activeTab === 'recent' ? (
@@ -592,8 +691,12 @@ export default function WorkspacePage({
                     <EmptyState
                       icon={FileText}
                       title="No recent documents yet"
-                      description="Documents opened in this session will appear here for fast access."
-                      actionLabel="Open a PDF Document"
+                      description={
+                        currentMode === 'reader'
+                          ? 'Books and comics opened in this session will appear here for fast access.'
+                          : 'Documents opened in this session will appear here for fast access.'
+                      }
+                      actionLabel={currentMode === 'reader' ? 'Open a Book or Comic' : 'Open a PDF Document'}
                       onAction={handleTriggerOpenFile}
                     />
                   </div>

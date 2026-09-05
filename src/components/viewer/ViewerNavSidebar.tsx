@@ -18,7 +18,6 @@ import {
   PenTool,
   Highlighter,
   Square,
-  Layers,
   Sun,
   Moon,
   Home,
@@ -270,8 +269,7 @@ interface ViewerNavSidebarProps {
   isMultiDocSearch: boolean;
   onSelectMatch: (pageNum: number, matchIndex: number, docId?: string) => void;
 
-  // Workspace Actions
-  onOpenOrganizer?: () => void;
+
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
   onReturnToCover?: () => void;
@@ -304,7 +302,6 @@ export default function ViewerNavSidebar({
   multiDocResults,
   isMultiDocSearch,
   onSelectMatch,
-  onOpenOrganizer,
   darkMode,
   onToggleDarkMode,
   onReturnToCover,
@@ -386,7 +383,7 @@ export default function ViewerNavSidebar({
 
   // Resizable sidebar width state (persisted in localStorage)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('pdflow_sidebar_width');
+    const saved = localStorage.getItem('inkvault_sidebar_width') ?? localStorage.getItem('pdflow_sidebar_width');
     return saved ? Math.max(200, Math.min(650, parseInt(saved, 10))) : 280;
   });
   const [isResizing, setIsResizing] = useState(false);
@@ -406,7 +403,7 @@ export default function ViewerNavSidebar({
 
     const handleMouseUp = () => {
       setIsResizing(false);
-      localStorage.setItem('pdflow_sidebar_width', sidebarWidth.toString());
+      localStorage.setItem('inkvault_sidebar_width', sidebarWidth.toString());
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -425,7 +422,7 @@ export default function ViewerNavSidebar({
   return (
     <aside 
       style={{ width: `${sidebarWidth}px` }}
-      className="h-full flex flex-col justify-between border-r border-border bg-surface/95 dark:bg-surface/95 flex-shrink-0 z-30 select-none relative group/sidebar"
+      className="h-full flex flex-col justify-between border-r border-border bg-surface dark:bg-surface flex-shrink-0 z-30 select-none relative group/sidebar"
     >
       {/* Interactive Drag Handle to Expand / Resize Sidebar */}
       <div
@@ -442,7 +439,7 @@ export default function ViewerNavSidebar({
       </div>
       
       {/* 1. Sleek Fixed Header Bar & Navigation Strip */}
-      <div className="border-b border-border bg-card/60 dark:bg-card/60 flex-shrink-0 flex flex-col select-none">
+      <div className="border-b border-border bg-card dark:bg-card flex-shrink-0 flex flex-col select-none">
         {/* Document Info Row */}
         <div className="px-3.5 py-2.5 flex items-center justify-between border-b border-border/50">
           <div className="min-w-0 pr-2">
@@ -462,7 +459,7 @@ export default function ViewerNavSidebar({
 
           <div className="flex items-center gap-1 flex-shrink-0">
             {activeTab === 'thumbnails' ? (
-              <div className="flex items-center gap-0.5 bg-card/90 dark:bg-card/90 border border-border rounded-lg p-0.5 shadow-2xs">
+              <div className="flex items-center gap-0.5 bg-card dark:bg-card border border-border rounded-lg p-0.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setThumbnailColumns('1')}
@@ -504,7 +501,7 @@ export default function ViewerNavSidebar({
         </div>
 
         {/* 2. Navigation Tab Switcher Strip */}
-        <div className="flex items-center justify-between px-2 py-1.5 bg-surface/60 dark:bg-surface/40 gap-1">
+        <div className="flex items-center justify-between px-2 py-1.5 bg-surface dark:bg-surface gap-1">
           <button
             type="button"
             onClick={() => onTabChange?.('thumbnails')}
@@ -914,21 +911,7 @@ export default function ViewerNavSidebar({
       </div>
 
       {/* 3. Sidebar Footer Actions */}
-      <div className="p-3 border-t border-border flex flex-col gap-2 flex-shrink-0 bg-surface/40">
-        {onOpenOrganizer ? (
-          <button
-            onClick={onOpenOrganizer}
-            className="w-full flex items-center justify-between px-3 py-2 rounded-lg bg-card border border-border hover:border-accent text-xs font-semibold text-zinc-800 dark:text-zinc-200 transition-all shadow-xs group"
-          >
-            <span className="flex items-center gap-2">
-              <Layers className="h-4 w-4 text-accent" />
-              <span>Page Organizer</span>
-            </span>
-            <span className="text-[10px] font-mono text-zinc-400 group-hover:text-accent transition-colors">
-              Reorder
-            </span>
-          </button>
-        ) : null}
+      <div className="p-3 border-t border-border flex flex-col gap-2 flex-shrink-0 bg-surface dark:bg-surface">
 
         <div className="flex items-center justify-between gap-2 pt-1">
           {onToggleDarkMode ? (

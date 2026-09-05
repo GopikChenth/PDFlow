@@ -77,9 +77,9 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
       // Embed document security metadata
       if (mode === 'protect') {
         pdfDoc.setTitle(doc.name);
-        pdfDoc.setProducer(`PDFlow Secure Vault - AES-256 (Protected with Password: ${password ? '***' : ''})`);
+        pdfDoc.setProducer(`Ink Vault Secure - AES-256 (Protected with Password: ${password ? '***' : ''})`);
       } else {
-        pdfDoc.setProducer('PDFlow Unlocked Document');
+        pdfDoc.setProducer('Ink Vault Unlocked Document');
       }
 
       const pdfBytes = await pdfDoc.save();
@@ -131,7 +131,7 @@ export default function ProtectTool({ initialDoc, onOpenProtectedDoc }: ProtectT
       />
 
       {/* Top Toolbar */}
-      <div className="h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
+      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
             <Lock className="h-3.5 w-3.5" />

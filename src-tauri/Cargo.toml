@@ -1,12 +1,12 @@
 [package]
-name = "pdf-studio"
+name = "ink-vault"
 version = "0.1.0"
-description = "Lightweight, Modern & Offline PDF Suite"
-authors = ["PDF Studio Team"]
+description = "Lightweight, Modern & Offline Document Suite"
+authors = ["Ink Vault Team"]
 edition = "2021"
 
 [lib]
-name = "pdf_studio_lib"
+name = "ink_vault_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]

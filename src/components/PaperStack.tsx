@@ -300,7 +300,7 @@ export default function PaperStack() {
 
                   {/* Document Custom Graphic Body depending on index */}
                   {index === 0 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>PIPELINE RENDER STATUS</span>
                         <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% COMPILED</span>
@@ -320,7 +320,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 1 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-2 font-mono">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-2 font-mono">
                       <div className="flex items-center justify-between text-[9px] text-zinc-500">
                         <span>AUDIT METRICS</span>
                         <span className="text-blue-600 dark:text-blue-400 font-semibold">BALANCED</span>
@@ -336,7 +336,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 2 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>LEGAL JURISDICTION</span>
                         <span className="font-semibold text-rose-500">STRICT PRIVACY</span>
@@ -356,7 +356,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 3 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>CAD VECTOR GRID</span>
                         <span className="font-semibold text-amber-500">X: 1920 / Y: 1080</span>
@@ -371,7 +371,7 @@ export default function PaperStack() {
                   )}
 
                   {index === 4 && (
-                    <div className="my-2 p-2.5 rounded-lg bg-surface/80 dark:bg-surface/80 border border-border flex flex-col gap-1.5 font-mono text-[9px]">
+                    <div className="my-2 p-2.5 rounded-lg bg-surface dark:bg-surface border border-border flex flex-col gap-1.5 font-mono text-[9px]">
                       <div className="flex items-center justify-between text-zinc-500">
                         <span>TYPOGRAPHY SYSTEM</span>
                         <span className="text-purple-600 dark:text-purple-400 font-semibold">GEIST / PLUS JAKARTA</span>

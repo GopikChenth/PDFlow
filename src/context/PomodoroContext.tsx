@@ -9,6 +9,11 @@ export interface PomodoroSettings {
   soundEnabled: boolean;
 }
 
+export interface PomodoroPrompt {
+  type: 'focusCompleted' | 'breakCompleted';
+  targetPhase: PomodoroPhase;
+}
+
 const DEFAULT_SETTINGS: PomodoroSettings = {
   focusMin: 25,
   shortBreakMin: 5,
@@ -29,7 +34,7 @@ function playGentleChime() {
     const gain1 = ctx.createGain();
     osc1.type = 'sine';
     osc1.frequency.setValueAtTime(659.25, now);
-    gain1.gain.setValueAtTime(0.18, now);
+    gain1.gain.setValueAtTime(0.2, now);
     gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
     osc1.connect(gain1);
     gain1.connect(ctx.destination);
@@ -41,15 +46,23 @@ function playGentleChime() {
     const gain2 = ctx.createGain();
     osc2.type = 'sine';
     osc2.frequency.setValueAtTime(880, now + 0.18);
-    gain2.gain.setValueAtTime(0.22, now + 0.18);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+    gain2.gain.setValueAtTime(0.25, now + 0.18);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
     osc2.connect(gain2);
     gain2.connect(ctx.destination);
     osc2.start(now + 0.18);
-    osc2.stop(now + 0.85);
+    osc2.stop(now + 0.9);
   } catch {
-    // Ignore audio permission or blocked errors
+    // AudioContext blocked or not supported
   }
+}
+
+function sendDesktopNotification(title: string, body: string) {
+  try {
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, { body });
+    }
+  } catch {}
 }
 
 export interface PomodoroContextType {
@@ -58,6 +71,7 @@ export interface PomodoroContextType {
   isRunning: boolean;
   completedSessions: number;
   settings: PomodoroSettings;
+  prompt: PomodoroPrompt | null;
   startTimer: () => void;
   pauseTimer: () => void;
   toggleTimer: () => void;
@@ -67,6 +81,9 @@ export interface PomodoroContextType {
   updateSettings: (newSettings: Partial<PomodoroSettings>) => void;
   formatTime: (secs: number) => string;
   progressPercent: number;
+  acceptPrompt: () => void;
+  dismissPrompt: () => void;
+  extendTime: (extraMinutes: number) => void;
 }
 
 const PomodoroContext = createContext<PomodoroContextType | null>(null);
@@ -75,7 +92,7 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
   // Load persisted settings
   const [settings, setSettings] = useState<PomodoroSettings>(() => {
     try {
-      const saved = localStorage.getItem('pdflow_pomodoro_settings');
+      const saved = localStorage.getItem('inkvault_pomodoro_settings') ?? localStorage.getItem('pdflow_pomodoro_settings');
       if (saved) return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
     } catch {}
     return DEFAULT_SETTINGS;
@@ -85,15 +102,25 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
   const [secondsLeft, setSecondsLeft] = useState<number>(() => settings.focusMin * 60);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [completedSessions, setCompletedSessions] = useState<number>(0);
+  const [prompt, setPrompt] = useState<PomodoroPrompt | null>(null);
 
   const targetEndTimeRef = useRef<number | null>(null);
+
+  // Request browser notification permission once
+  useEffect(() => {
+    try {
+      if ('Notification' in window && Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    } catch {}
+  }, []);
 
   // Save settings when modified
   const updateSettings = useCallback((newSettings: Partial<PomodoroSettings>) => {
     setSettings((prev) => {
       const updated = { ...prev, ...newSettings };
       try {
-        localStorage.setItem('pdflow_pomodoro_settings', JSON.stringify(updated));
+        localStorage.setItem('inkvault_pomodoro_settings', JSON.stringify(updated));
       } catch {}
       return updated;
     });
@@ -108,11 +135,13 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
     if (targetPhase === 'shortBreak') mins = customTimes.shortBreakMin;
     if (targetPhase === 'longBreak') mins = customTimes.longBreakMin;
     setSecondsLeft(mins * 60);
+    setPrompt(null);
   }, [settings]);
 
   const startTimer = useCallback(() => {
     targetEndTimeRef.current = Date.now() + secondsLeft * 1000;
     setIsRunning(true);
+    setPrompt(null);
   }, [secondsLeft]);
 
   const pauseTimer = useCallback(() => {
@@ -133,6 +162,7 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
   }, [phase, switchPhase]);
 
   const skipPhase = useCallback(() => {
+    setPrompt(null);
     if (phase === 'focus') {
       const nextCount = completedSessions + 1;
       setCompletedSessions(nextCount);
@@ -146,7 +176,41 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
     }
   }, [phase, completedSessions, switchPhase]);
 
-  // Accurate drift-free countdown timer
+  // Accept Prompt: transition to requested phase and immediately run the timer
+  const acceptPrompt = useCallback(() => {
+    if (!prompt) return;
+    const nextPhase = prompt.targetPhase;
+    setPrompt(null);
+    setPhase(nextPhase);
+    const mins = nextPhase === 'focus' 
+      ? settings.focusMin 
+      : nextPhase === 'shortBreak' 
+        ? settings.shortBreakMin 
+        : settings.longBreakMin;
+    const nextSecs = mins * 60;
+    setSecondsLeft(nextSecs);
+    targetEndTimeRef.current = Date.now() + nextSecs * 1000;
+    setIsRunning(true);
+  }, [prompt, settings]);
+
+  // Dismiss Prompt without auto-starting
+  const dismissPrompt = useCallback(() => {
+    setPrompt(null);
+  }, []);
+
+  // Extend current phase (e.g. +5 min focus or +2 min break)
+  const extendTime = useCallback((extraMinutes: number) => {
+    setPrompt(null);
+    const extraSecs = extraMinutes * 60;
+    setSecondsLeft((prev) => {
+      const updated = prev + extraSecs;
+      targetEndTimeRef.current = Date.now() + updated * 1000;
+      return updated;
+    });
+    setIsRunning(true);
+  }, []);
+
+  // Accurate drift-free countdown timer & Prompt trigger
   useEffect(() => {
     if (!isRunning) return;
 
@@ -164,6 +228,7 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
         // Phase complete!
         clearInterval(interval);
         targetEndTimeRef.current = null;
+        setIsRunning(false);
 
         if (settings.soundEnabled) {
           playGentleChime();
@@ -172,19 +237,35 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
         if (phase === 'focus') {
           const nextCount = completedSessions + 1;
           setCompletedSessions(nextCount);
-          if (nextCount % 4 === 0) {
-            switchPhase('longBreak');
-          } else {
-            switchPhase('shortBreak');
-          }
+          const targetPhase: PomodoroPhase = (nextCount % 4 === 0) ? 'longBreak' : 'shortBreak';
+          const breakMins = targetPhase === 'longBreak' ? settings.longBreakMin : settings.shortBreakMin;
+          
+          setPhase(targetPhase);
+          setSecondsLeft(breakMins * 60);
+
+          // Prompt user to start break!
+          setPrompt({ type: 'focusCompleted', targetPhase });
+          sendDesktopNotification(
+            'Focus Block Completed',
+            `Great work! Ready to start your ${breakMins}-minute break?`
+          );
         } else {
-          switchPhase('focus');
+          // Break is over -> prompt user to start work!
+          const focusMins = settings.focusMin;
+          setPhase('focus');
+          setSecondsLeft(focusMins * 60);
+
+          setPrompt({ type: 'breakCompleted', targetPhase: 'focus' });
+          sendDesktopNotification(
+            'Break Finished',
+            `Break time is up! Ready to focus for ${focusMins} minutes?`
+          );
         }
       }
     }, 250);
 
     return () => clearInterval(interval);
-  }, [isRunning, phase, settings.soundEnabled, completedSessions, switchPhase, secondsLeft]);
+  }, [isRunning, phase, settings, completedSessions, secondsLeft]);
 
   // Format MM:SS
   const formatTime = (secs: number) => {
@@ -209,6 +290,7 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
         isRunning,
         completedSessions,
         settings,
+        prompt,
         startTimer,
         pauseTimer,
         toggleTimer,
@@ -218,6 +300,9 @@ export function PomodoroProvider({ children }: { children: React.ReactNode }) {
         updateSettings,
         formatTime,
         progressPercent,
+        acceptPrompt,
+        dismissPrompt,
+        extendTime,
       }}
     >
       {children}

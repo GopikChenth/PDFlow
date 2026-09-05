@@ -41,7 +41,7 @@ const DocumentTabItem = React.memo(function DocumentTabItem({
       className={`group relative flex items-center gap-2 px-3 py-1.5 rounded-t-xl text-xs cursor-pointer transition-all border-t border-x flex-shrink-0 max-w-[220px] min-w-[120px] ${
         isActive
           ? 'bg-card text-zinc-900 dark:text-zinc-100 font-semibold border-border border-b-0 shadow-xs z-10'
-          : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-card/50 hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
+          : 'bg-transparent text-zinc-600 dark:text-zinc-400 hover:bg-surface hover:text-zinc-900 dark:hover:text-zinc-200 border-transparent'
       }`}
     >
       {/* Active Indicator Accent Line */}
@@ -106,7 +106,7 @@ export default function DocumentTabBar({
   if (docs.length === 0) return null;
 
   return (
-    <div className="h-10 bg-surface/95 dark:bg-surface/95 border-b border-border flex items-end px-2 gap-1 select-none flex-shrink-0 z-30 relative overflow-hidden">
+    <div className="h-10 bg-surface dark:bg-surface border-b border-border flex items-end px-2 gap-1 select-none flex-shrink-0 z-30 relative overflow-hidden">
       
       {/* Scrollable Tabs List */}
       <div 

@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
-import { PageView } from './types';
+import { PageView, AppMode } from './types';
 import FirstPage from './pages/FirstPage';
 import TitleBar from './components/TitleBar';
 
 // Lazy-load non-initial viewports to reduce initial bundle and memory
 const WorkspacePage = lazy(() => import('./pages/WorkspacePage'));
-const ComparisonPage = lazy(() => import('./pages/comparison/ComparisonPage'));
 
 function PageLoadingFallback() {
   return (
@@ -18,11 +17,12 @@ function PageLoadingFallback() {
 
 export default function App() {
   const [currentView, setCurrentView] = useState<PageView>('firstPage');
+  const [appMode, setAppMode] = useState<AppMode>('editor');
   const [activeTab, setActiveTab] = useState<string>('recent');
   const [activeDocName, setActiveDocName] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('pdflow_dark_mode');
+      const saved = localStorage.getItem('inkvault_dark_mode') ?? localStorage.getItem('pdflow_dark_mode');
       if (saved !== null) {
         return saved === 'true';
       }
@@ -37,12 +37,12 @@ export default function App() {
     if (darkMode) {
       document.documentElement.classList.add('dark');
       try {
-        localStorage.setItem('pdflow_dark_mode', 'true');
+        localStorage.setItem('inkvault_dark_mode', 'true');
       } catch {}
     } else {
       document.documentElement.classList.remove('dark');
       try {
-        localStorage.setItem('pdflow_dark_mode', 'false');
+        localStorage.setItem('inkvault_dark_mode', 'false');
       } catch {}
     }
   }, [darkMode]);
@@ -53,16 +53,15 @@ export default function App() {
   }, []);
 
   // Stable view switchers
-  const handleEnterWorkspace = useCallback(() => {
+  const handleEnterWorkspace = useCallback((mode?: AppMode) => {
+    if (mode) {
+      setAppMode(mode);
+    }
     setCurrentView('workspace');
   }, []);
 
   const handleReturnToCover = useCallback(() => {
     setCurrentView('firstPage');
-  }, []);
-
-  const handleOpenComparison = useCallback(() => {
-    setCurrentView('comparison');
   }, []);
 
   const handleSelectTab = useCallback((tab: string) => {
@@ -86,31 +85,46 @@ export default function App() {
     }
   }, []);
 
-  // Global keyboard shortcuts (⌘+Enter / Ctrl+Enter to toggle view)
+  // Global keyboard shortcuts (⌘+Enter to toggle view, ⌘1/⌘2/⌘3 to switch workflow mode)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
         setCurrentView((prev) => (prev === 'workspace' ? 'firstPage' : 'workspace'));
+      } else if ((e.metaKey || e.ctrlKey) && !e.shiftKey && !e.altKey) {
+        if (e.key === '1') {
+          e.preventDefault();
+          setAppMode('editor');
+          if (currentView === 'firstPage') setCurrentView('workspace');
+        } else if (e.key === '2') {
+          e.preventDefault();
+          setAppMode('study');
+          if (currentView === 'firstPage') setCurrentView('workspace');
+        } else if (e.key === '3') {
+          e.preventDefault();
+          setAppMode('reader');
+          if (currentView === 'firstPage') setCurrentView('workspace');
+        }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [currentView]);
 
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-background text-zinc-800 dark:text-zinc-200">
       
       {/* Global Desktop Custom TitleBar & Menu Bar */}
       <TitleBar
-        title="PDF Studio"
+        title="Ink Vault"
         activeDocName={activeDocName}
         darkMode={darkMode}
         onToggleDarkMode={handleToggleDarkMode}
         onOpenDocument={handleOpenDocument}
         onSelectTab={handleSelectTab}
         onReturnToCover={handleReturnToCover}
-        onOpenComparison={handleOpenComparison}
         onToggleFullscreen={handleToggleFullscreen}
+        currentMode={appMode}
+        onSelectMode={setAppMode}
       />
 
       {/* Main App Viewport */}
@@ -119,16 +133,10 @@ export default function App() {
           {currentView === 'firstPage' ? (
             <FirstPage
               onEnterWorkspace={handleEnterWorkspace}
-              onOpenComparison={handleOpenComparison}
               darkMode={darkMode}
               onToggleDarkMode={handleToggleDarkMode}
-            />
-          ) : currentView === 'comparison' ? (
-            <ComparisonPage
-              onEnterWorkspace={handleEnterWorkspace}
-              onReturnToCover={handleReturnToCover}
-              darkMode={darkMode}
-              onToggleDarkMode={handleToggleDarkMode}
+              currentMode={appMode}
+              onSelectMode={setAppMode}
             />
           ) : (
             <WorkspacePage
@@ -138,6 +146,8 @@ export default function App() {
               controlledActiveTab={activeTab}
               onActiveTabChange={setActiveTab}
               onActiveDocChange={setActiveDocName}
+              initialMode={appMode}
+              onModeChange={setAppMode}
             />
           )}
         </Suspense>

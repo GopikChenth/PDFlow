@@ -62,10 +62,10 @@ export default function TextReflowView({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-xl animate-in fade-in duration-200 text-zinc-900 dark:text-zinc-100">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background animate-in fade-in duration-200 text-zinc-900 dark:text-zinc-100">
       
       {/* 1. Header with Reader Controls */}
-      <header className="h-14 border-b border-border px-6 flex items-center justify-between gap-4 bg-surface/70 dark:bg-surface/50 backdrop-blur-md flex-shrink-0">
+      <header className="h-14 border-b border-border px-6 flex items-center justify-between gap-4 bg-surface dark:bg-surface flex-shrink-0">
         
         {/* Title */}
         <div className="flex items-center gap-2.5 min-w-0">

@@ -480,19 +480,39 @@ export default function AnnotationLayer({
             );
           }
 
-          if (ann.type === 'highlight' && ann.rect) {
-            return (
-              <rect
-                key={ann.id}
-                x={ann.rect.x * width}
-                y={ann.rect.y * height}
-                width={ann.rect.width * width}
-                height={ann.rect.height * height}
-                fill={ann.color}
-                opacity={ann.opacity || 0.45}
-                style={{ mixBlendMode: 'multiply' }}
-              />
-            );
+          if (ann.type === 'highlight') {
+            if (ann.rects && ann.rects.length > 0) {
+              return (
+                <g key={ann.id}>
+                  {ann.rects.map((r, rIdx) => (
+                    <rect
+                      key={`${ann.id}-${rIdx}`}
+                      x={r.x * width}
+                      y={r.y * height}
+                      width={r.width * width}
+                      height={r.height * height}
+                      fill={ann.color}
+                      opacity={ann.opacity || 0.45}
+                      style={{ mixBlendMode: 'multiply' }}
+                    />
+                  ))}
+                </g>
+              );
+            }
+            if (ann.rect) {
+              return (
+                <rect
+                  key={ann.id}
+                  x={ann.rect.x * width}
+                  y={ann.rect.y * height}
+                  width={ann.rect.width * width}
+                  height={ann.rect.height * height}
+                  fill={ann.color}
+                  opacity={ann.opacity || 0.45}
+                  style={{ mixBlendMode: 'multiply' }}
+                />
+              );
+            }
           }
 
           if (ann.type === 'underline' && ann.rect) {

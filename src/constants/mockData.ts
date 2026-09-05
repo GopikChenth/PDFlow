@@ -70,7 +70,6 @@ export const DOCUMENTS: readonly DocumentSheet[] = [
 export const NAV_ITEMS: readonly NavItem[] = [
   { id: 'recent', label: 'Recent Documents', icon: Layers },
   { id: 'viewer', label: 'PDF Viewer', icon: FileText },
-  { id: 'organizer', label: 'Page Organizer', icon: Layers },
 ] as const;
 
 export const TOOL_ITEMS: readonly ToolItem[] = [

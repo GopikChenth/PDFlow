@@ -228,7 +228,7 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
       />
 
       {/* Top Toolbar */}
-      <div className="h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
+      <div className="h-12 border-b border-border bg-surface dark:bg-surface px-4 sm:px-6 flex items-center justify-between gap-3 flex-shrink-0">
         <div className="flex items-center gap-2.5">
           <div className="h-7 w-7 rounded-lg bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 flex items-center justify-center shadow-xs">
             <Stamp className="h-3.5 w-3.5" />
@@ -417,7 +417,7 @@ export default function WatermarkTool({ initialDoc, onOpenWatermarkedDoc }: Wate
 
               <div className="w-full aspect-[1/1.3] rounded-2xl bg-zinc-100 dark:bg-zinc-950/60 border border-border shadow-inner p-4 flex items-center justify-center overflow-hidden relative">
                 {pageLoading && (
-                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xs">
+                  <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-white dark:bg-zinc-900">
                     <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
                     <span className="text-xs font-medium text-zinc-500">Loading Preview…</span>
                   </div>

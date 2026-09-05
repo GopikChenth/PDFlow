@@ -28,7 +28,8 @@ import {
   SearchMatch, 
   MultiDocSearchResult,
   PDFAnnotation,
-  AnnotationToolType
+  AnnotationToolType,
+  AppMode
 } from '../types';
 import SearchOverlay from './viewer/SearchOverlay';
 import ViewerNavSidebar from './viewer/ViewerNavSidebar';
@@ -39,6 +40,7 @@ import StickyNoteModal from './viewer/StickyNoteModal';
 import DocumentTabBar from './viewer/DocumentTabBar';
 import MinimalStudyBar from './viewer/MinimalStudyBar';
 import PomodoroTimer from './viewer/PomodoroTimer';
+import TextSelectionToolbar, { SelectionData } from './viewer/TextSelectionToolbar';
 import { exportToXFDF, exportToJSON, downloadFile, bakeAnnotationsToPDF } from '../utils/annotationExporter';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
@@ -58,7 +60,6 @@ interface PDFViewerProps {
   onCloseDoc?: (docId: string, e?: React.MouseEvent) => void;
   onNewTab?: () => void;
   onOpenDocument?: () => void;
-  onOpenOrganizer?: () => void;
   darkMode?: boolean;
   onToggleDarkMode?: () => void;
   onReturnToCover?: () => void;
@@ -67,6 +68,8 @@ interface PDFViewerProps {
   initialRotation?: number;
   initialAnnotations?: PDFAnnotation[];
   onSaveSessionState?: (state: { page: number; scale: number; rotation: number; annotations: PDFAnnotation[] }) => void;
+  initialAppMode?: AppMode;
+  onAppModeChange?: (mode: AppMode) => void;
 }
 
 interface PageInfo {
@@ -88,7 +91,6 @@ export default function PDFViewer({
   onCloseDoc,
   onNewTab,
   onOpenDocument,
-  onOpenOrganizer,
   darkMode,
   onToggleDarkMode,
   onReturnToCover,
@@ -97,6 +99,8 @@ export default function PDFViewer({
   initialRotation,
   initialAnnotations,
   onSaveSessionState,
+  initialAppMode = 'editor',
+  onAppModeChange,
 }: PDFViewerProps) {
   // Core Document State
   const [pdfDoc, setPdfDoc] = useState<pdfjsLib.PDFDocumentProxy | null>(null);
@@ -109,22 +113,26 @@ export default function PDFViewer({
   const [isBakingAnnotations, setIsBakingAnnotations] = useState<boolean>(false);
 
   // 1. Page Layout Controls
-  const [layoutMode, setLayoutMode] = useState<PageLayoutMode>('continuous');
+  const [layoutMode, setLayoutMode] = useState<PageLayoutMode>(() => 
+    initialAppMode === 'reader' ? 'facing-pages' : 'continuous'
+  );
   const [facingCoverPage, setFacingCoverPage] = useState<boolean>(true);
   const [showLayoutMenu, setShowLayoutMenu] = useState<boolean>(false);
 
   // 2. Display & Readability Modes
-  const [focusMode, setFocusMode] = useState<boolean>(false); // Zen / background dimming mode
+  const [focusMode, setFocusMode] = useState<boolean>(() => initialAppMode === 'reader'); // Zen / background dimming mode
   const [isReflowOpen, setIsReflowOpen] = useState<boolean>(false);
-  const [isStudyMode, setIsStudyMode] = useState<boolean>(false);
-  const [studyTint, setStudyTint] = useState<'default' | 'sepia' | 'dark'>('default');
+  const [isStudyMode, setIsStudyMode] = useState<boolean>(() => initialAppMode === 'study');
+  const [studyTint, setStudyTint] = useState<'default' | 'sepia' | 'dark'>(() => 
+    initialAppMode === 'reader' ? 'sepia' : 'default'
+  );
   const [isStudyBarPinned, setIsStudyBarPinned] = useState<boolean>(true);
   const [isStudyBarHovered, setIsStudyBarHovered] = useState<boolean>(false);
 
   // 3. Navigation Panes (Left Drawer)
   const [isNavSidebarOpen, setIsNavSidebarOpen] = useState<boolean>(() => {
     try {
-      const saved = localStorage.getItem('pdflow_sidebar_open');
+      const saved = localStorage.getItem('inkvault_sidebar_open') ?? localStorage.getItem('pdflow_sidebar_open');
       return saved !== null ? saved === 'true' : true;
     } catch {
       return true;
@@ -139,11 +147,36 @@ export default function PDFViewer({
           ? openState 
           : !prev;
       try {
-        localStorage.setItem('pdflow_sidebar_open', String(next));
+        localStorage.setItem('inkvault_sidebar_open', String(next));
       } catch {}
       return next;
     });
   }, []);
+
+  // Synchronize viewer display when AppMode changes dynamically
+  useEffect(() => {
+    if (!initialAppMode) return;
+    if (initialAppMode === 'reader') {
+      setLayoutMode('facing-pages');
+      setFocusMode(true);
+      setStudyTint('sepia');
+      setIsStudyMode(false);
+      setIsNavSidebarOpen(false);
+    } else if (initialAppMode === 'study') {
+      setIsStudyMode(true);
+      setFocusMode(false);
+      setLayoutMode('continuous');
+      setStudyTint('default');
+      setIsNavSidebarOpen(false);
+    } else if (initialAppMode === 'editor') {
+      setIsStudyMode(false);
+      setFocusMode(false);
+      setLayoutMode('continuous');
+      setStudyTint('default');
+      setIsNavSidebarOpen(true);
+    }
+  }, [initialAppMode]);
+
   const [navSidebarTab, setNavSidebarTab] = useState<NavSidebarTab>('thumbnails');
   const [outline, setOutline] = useState<PDFOutlineNode[]>([]);
   const [attachments, setAttachments] = useState<PDFAttachment[]>([]);
@@ -297,6 +330,153 @@ export default function PDFViewer({
     setAnnotations(next);
     persistAnnotations(next);
   }, [redoStack, annotations, persistAnnotations]);
+
+  // ----------------------------------------------------
+  // Contextual Text Selection Toolbar & Quick Actions
+  // ----------------------------------------------------
+  const [selectionData, setSelectionData] = useState<SelectionData | null>(null);
+
+  const handleSelectionMouseUp = useCallback(() => {
+    // Slight delay so browser range calculation finishes
+    setTimeout(() => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) {
+        setSelectionData(null);
+        return;
+      }
+
+      const text = selection.toString().trim();
+      if (!text || text.length === 0) {
+        setSelectionData(null);
+        return;
+      }
+
+      if (selection.rangeCount === 0) {
+        setSelectionData(null);
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      const container = range.commonAncestorContainer;
+      const element = container.nodeType === Node.ELEMENT_NODE 
+        ? (container as HTMLElement) 
+        : container.parentElement;
+
+      if (!element) {
+        setSelectionData(null);
+        return;
+      }
+
+      const pageEl = element.closest('[data-page]') as HTMLElement | null;
+      if (!pageEl) {
+        setSelectionData(null);
+        return;
+      }
+
+      const pageNum = parseInt(pageEl.getAttribute('data-page') || '1', 10);
+      const pageRect = pageEl.getBoundingClientRect();
+      const rangeRect = range.getBoundingClientRect();
+
+      if (rangeRect.width === 0 && rangeRect.height === 0) {
+        setSelectionData(null);
+        return;
+      }
+
+      // Compute normalized 0..1 bounding boxes for multi-line selection
+      const rawRects = Array.from(range.getClientRects()).filter((r) => r.width > 0 && r.height > 0);
+      const normalizedRects = rawRects.map((r) => {
+        const x = Math.max(0, Math.min(1, (r.left - pageRect.left) / pageRect.width));
+        const y = Math.max(0, Math.min(1, (r.top - pageRect.top) / pageRect.height));
+        const width = Math.max(0, Math.min(1 - x, r.width / pageRect.width));
+        const height = Math.max(0, Math.min(1 - y, r.height / pageRect.height));
+        return { x, y, width, height };
+      });
+
+      setSelectionData({
+        text,
+        pageNum,
+        rects: normalizedRects,
+        clientRect: {
+          top: rangeRect.top,
+          left: rangeRect.left,
+          right: rangeRect.right,
+          bottom: rangeRect.bottom,
+          width: rangeRect.width,
+          height: rangeRect.height,
+        },
+      });
+    }, 25);
+  }, []);
+
+  // Dismiss selection toolbar when selection is cleared
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+        setSelectionData(null);
+      }
+    };
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
+
+  const handleHighlightSelection = useCallback((color: string) => {
+    if (!selectionData || selectionData.rects.length === 0) return;
+
+    const minX = Math.min(...selectionData.rects.map((r) => r.x));
+    const minY = Math.min(...selectionData.rects.map((r) => r.y));
+    const maxX = Math.max(...selectionData.rects.map((r) => r.x + r.width));
+    const maxY = Math.max(...selectionData.rects.map((r) => r.y + r.height));
+
+    const newAnn: PDFAnnotation = {
+      id: `hl-${Date.now()}`,
+      docId: doc.id || '',
+      pageNum: selectionData.pageNum,
+      type: 'highlight',
+      rect: { x: minX, y: minY, width: maxX - minX, height: maxY - minY },
+      rects: selectionData.rects,
+      color: color,
+      opacity: 0.45,
+      text: selectionData.text,
+      createdAt: new Date(),
+    };
+
+    handleAddAnnotation(newAnn);
+    setSelectionData(null);
+    window.getSelection()?.removeAllRanges();
+  }, [selectionData, doc.id, handleAddAnnotation]);
+
+  const handleSearchOnlineSelection = useCallback((queryText: string) => {
+    const clean = queryText.trim();
+    if (!clean) return;
+    const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(clean)}`;
+    window.open(searchUrl, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const handleSearchInDocSelection = useCallback((queryText: string) => {
+    setSearchQuery(queryText.trim());
+    setIsSearchOpen(true);
+    setSelectionData(null);
+  }, []);
+
+  const handleAddStickyFromSelection = useCallback((selectedText: string) => {
+    if (!selectionData) return;
+    const firstRect = selectionData.rects[0] || { x: 0.1, y: 0.1 };
+    const newNote: PDFAnnotation = {
+      id: `note-${Date.now()}`,
+      docId: doc.id || '',
+      pageNum: selectionData.pageNum,
+      type: 'sticky-note',
+      rect: { x: Math.min(0.85, firstRect.x + 0.05), y: firstRect.y, width: 0.05, height: 0.05 },
+      color: activeColor,
+      text: `"${selectedText}"\n\n`,
+      comments: [],
+      createdAt: new Date(),
+    };
+    handleAddAnnotation(newNote);
+    setActiveStickyModalAnnId(newNote.id);
+    setSelectionData(null);
+  }, [selectionData, doc.id, activeColor, handleAddAnnotation]);
 
   // Export XFDF
   const handleExportXFDF = useCallback(() => {
@@ -1019,14 +1199,16 @@ export default function PDFViewer({
       setIsStudyMode(true);
       setIsFullscreen(true);
       setIsNavSidebarOpen(false); // Clean canvas for studying
+      onAppModeChange?.('study');
     } else {
       if (document.fullscreenElement) {
         document.exitFullscreen().catch(() => {});
       }
       setIsStudyMode(false);
       setIsFullscreen(false);
+      onAppModeChange?.('editor');
     }
-  }, [isStudyMode]);
+  }, [isStudyMode, onAppModeChange]);
 
   const handleToggleFullscreen = () => {
     if (!containerRef.current) return;
@@ -1286,6 +1468,7 @@ export default function PDFViewer({
   return (
     <div 
       ref={containerRef}
+      onMouseUp={handleSelectionMouseUp}
       className={`w-full h-full flex flex-col bg-background text-zinc-800 dark:text-zinc-200 overflow-hidden relative ${
         isFullscreen ? 'fixed inset-0 z-50' : ''
       }`}
@@ -1344,7 +1527,7 @@ export default function PDFViewer({
           </div>
         </>
       ) : (
-        <header className={`h-12 border-b border-border bg-surface/95 dark:bg-surface/95 backdrop-blur-md px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
+        <header className={`h-12 border-b border-border bg-surface dark:bg-surface px-3 sm:px-4 flex items-center justify-between gap-3 flex-shrink-0 z-20 transition-opacity duration-300 select-none ${
           focusMode ? 'opacity-20 hover:opacity-100' : 'opacity-100'
         }`}>
         
@@ -1412,7 +1595,7 @@ export default function PDFViewer({
             {showLayoutMenu && (
               <div 
                 onClick={() => setShowLayoutMenu(false)}
-                className="absolute top-10 right-0 z-50 w-52 p-1.5 rounded-xl bg-card border border-border shadow-xl backdrop-blur-md flex flex-col gap-1 text-xs animate-in fade-in"
+                className="absolute top-10 right-0 z-50 w-52 p-1.5 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-2xl flex flex-col gap-1 text-xs animate-in fade-in ring-1 ring-black/5 dark:ring-white/10"
               >
                 <div className="px-2 py-1 text-[10px] font-mono text-zinc-400 uppercase font-semibold">Page Layout</div>
                 <button
@@ -1625,7 +1808,6 @@ export default function PDFViewer({
                 scrollToPage(pNum);
               }
             }}
-            onOpenOrganizer={onOpenOrganizer}
             darkMode={darkMode}
             onToggleDarkMode={onToggleDarkMode}
             onReturnToCover={onReturnToCover}
@@ -1637,7 +1819,7 @@ export default function PDFViewer({
               onClick={() => toggleNavSidebar(true)}
               title="Show Sidebar (Ctrl+B)"
               aria-label="Show Pages Sidebar"
-              className="h-8 px-2.5 rounded-lg border border-border bg-card/95 dark:bg-card/95 backdrop-blur shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer select-none"
+              className="h-8 px-2.5 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-md flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:border-zinc-400 dark:hover:border-zinc-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 transition-colors cursor-pointer select-none"
             >
               <PanelLeftOpen className="h-3.5 w-3.5 text-accent" aria-hidden="true" />
               <span>Pages</span>
@@ -1649,6 +1831,7 @@ export default function PDFViewer({
         <div 
           ref={scrollContainerRef}
           tabIndex={0}
+          onMouseUp={handleSelectionMouseUp}
           className={`flex-1 w-full h-full overflow-y-auto overflow-x-auto py-8 px-4 flex flex-col items-center gap-8 focus:outline-none overscroll-contain bg-background transition-colors duration-200 ${
             layoutMode === 'single' ? 'justify-center min-h-full' : ''
           }`}
@@ -1736,8 +1919,8 @@ export default function PDFViewer({
 
       </div>
 
-      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (Hidden in Study Mode for distraction-free reading) */}
-      {!isStudyMode && (
+      {/* 5. Floating Bottom Unified Markup, Annotation & Zoom Toolbar (Exclusively in Editor Mode) */}
+      {initialAppMode === 'editor' && !isStudyMode && (
         <FloatingAnnotationToolbar
           activeTool={activeAnnotationTool}
           onSelectTool={setActiveAnnotationTool}
@@ -1784,6 +1967,18 @@ export default function PDFViewer({
           onDeleteAnnotation={handleDeleteAnnotation}
         />
       ) : null}
+
+      {/* 9. Contextual Floating Text Selection Toolbar (Highlight & Search Online in Study & Normal Mode) */}
+      <TextSelectionToolbar
+        selectionData={selectionData}
+        onHighlight={handleHighlightSelection}
+        onSearchOnline={handleSearchOnlineSelection}
+        onSearchInDoc={handleSearchInDocSelection}
+        onAddStickyNote={handleAddStickyFromSelection}
+        onClose={() => setSelectionData(null)}
+        defaultColor={activeColor}
+        isStudyMode={isStudyMode}
+      />
 
     </div>
   );

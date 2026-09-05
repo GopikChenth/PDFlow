@@ -265,14 +265,14 @@ export default function StickyNoteModal({
   return (
     <div 
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 animate-in fade-in duration-150"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-lg bg-card border border-border shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[90vh] text-zinc-800 dark:text-zinc-200 animate-in zoom-in-95 duration-150"
       >
         {/* 1. Modal Header */}
-        <header className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface/70 backdrop-blur-md">
+        <header className="px-4 py-3 border-b border-border flex items-center justify-between bg-surface">
           <div className="flex items-center gap-2 font-bold text-xs">
             <div 
               className="h-3.5 w-3.5 rounded-full shadow-xs flex-shrink-0 ring-1 ring-black/20"
@@ -320,7 +320,7 @@ export default function StickyNoteModal({
         <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
           
           {/* SECTION A: MAIN NOTE TEXT EDITOR */}
-          <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface/80 border border-border">
+          <div className="flex flex-col gap-1.5 p-3 rounded-xl bg-surface border border-border">
             <div className="flex items-center justify-between text-[11px] font-semibold text-zinc-700 dark:text-zinc-300">
               <span>Primary Note Description</span>
               <span className="text-[10px] font-mono text-zinc-400 font-normal">Auto-saves live</span>
@@ -467,7 +467,7 @@ export default function StickyNoteModal({
             </div>
 
             {(!annotation.comments || annotation.comments.length === 0) ? (
-              <div className="p-3 text-center rounded-xl bg-surface/40 border border-border/60 text-xs text-zinc-400">
+              <div className="p-3 text-center rounded-xl bg-surface border border-border/60 text-xs text-zinc-400">
                 <p>No additional comments yet. Add a reply or feedback in the thread below.</p>
               </div>
             ) : (
@@ -507,7 +507,7 @@ export default function StickyNoteModal({
         </div>
 
         {/* 3. Modal Footer: Add Reply Form */}
-        <form onSubmit={handleAddReply} className="p-3 border-t border-border bg-surface/70 flex flex-col gap-2">
+        <form onSubmit={handleAddReply} className="p-3 border-t border-border bg-surface flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <input
               type="text"
